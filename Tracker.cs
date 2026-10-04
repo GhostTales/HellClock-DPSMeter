@@ -13,7 +13,19 @@ namespace DPSMeter
             public int Hits;
             public int Crits;
             public double Max;
+            public readonly double[] ByType = new double[TypeCount];
         }
+
+        public const int TypeCount = 4;
+        public static readonly string[] TypeNames = { "Physical", "Fire", "Plague", "Lightning" };
+        public static readonly Color[] TypeColors =
+        {
+            new Color(0.78f, 0.78f, 0.78f), new Color(1f, 0.45f, 0.15f),
+            new Color(0.5f, 0.85f, 0.2f), new Color(0.4f, 0.7f, 1f)
+        };
+        public static readonly double[] TypeTotals = new double[TypeCount];
+        public static readonly int[] TypeHits = new int[TypeCount];
+        public static double DotTotal;
 
         public static readonly Dictionary<string, Entry> Skills = new Dictionary<string, Entry>();
         public static double Total;
@@ -26,6 +38,9 @@ namespace DPSMeter
         public static void Reset()
         {
             Skills.Clear();
+            Array.Clear(TypeTotals, 0, TypeCount);
+            Array.Clear(TypeHits, 0, TypeCount);
+            DotTotal = 0;
             Total = Highest = 0;
             Hits = Crits = 0;
             Start = -1f;
@@ -69,6 +84,44 @@ namespace DPSMeter
             e.Hits++;
             if (d.IsCritical) e.Crits++;
             if (value > e.Max) e.Max = value;
+            if (d.IsDamageOverTime) DotTotal += value;
+
+            var split = new double[TypeCount];
+            SplitByType(d, value, split);
+            for (int i = 0; i < TypeCount; i++)
+            {
+                if (split[i] <= 0) continue;
+                TypeTotals[i] += split[i];
+                TypeHits[i]++;
+                e.ByType[i] += split[i];
+            }
+        }
+
+        static void SplitByType(DamageInstance d, double value, double[] split)
+        {
+            double sum = 0;
+            try
+            {
+                foreach (var b in d.DamageBases)
+                {
+                    int t = (int)b.EDamageTypeDefinition;
+                    if (b.Ignored || t < 0 || t >= TypeCount || b.Value <= 0) continue;
+                    split[t] += b.Value;
+                    sum += b.Value;
+                }
+            }
+            catch { sum = 0; }
+
+            if (sum <= 0)
+            {
+                Array.Clear(split, 0, TypeCount);
+                for (int i = 0; i < TypeCount; i++)
+                    if ((d.DamageTypesBitMask & (1 << i)) != 0) { split[i] = value; return; }
+                split[0] = value;
+                return;
+            }
+            double scale = value / sum; // keeps overkill capping consistent
+            for (int i = 0; i < TypeCount; i++) split[i] *= scale;
         }
 
         static string SkillName(DamageInstance d)
