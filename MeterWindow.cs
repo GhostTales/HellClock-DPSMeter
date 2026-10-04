@@ -35,8 +35,14 @@ namespace DPSMeter
 
         static string Hex(Color c) => ColorUtility.ToHtmlStringRGB(c);
 
+        internal static bool IsMouseOver;
+        static Rect _screenRect;
+        static bool _shown;
+
         void Update()
         {
+            var m = Input.mousePosition;
+            IsMouseOver = _shown && _screenRect.Contains(new Vector2(m.x, Screen.height - m.y));
             if (Input.GetKeyDown(Plugin.ToggleKey.Value)) _visible = !_visible;
             if (Input.GetKeyDown(Plugin.ResetKey.Value)) Tracker.Reset();
         }
@@ -66,12 +72,14 @@ namespace DPSMeter
 
         void OnGUI()
         {
+            _shown = _visible;
             if (!_visible) return;
             if (_label == null || _bg == null) Init();
 
             _rect.height = 0;
             _rect = GUILayout.Window(918273, _rect, Draw, "", GUILayout.Width(Width));
             _lastH = _rect.height;
+            _screenRect = _rect;
             _rect.x = Mathf.Clamp(_rect.x, 0, Screen.width - 40);
             _rect.y = Mathf.Clamp(_rect.y, 0, Screen.height - 40);
         }

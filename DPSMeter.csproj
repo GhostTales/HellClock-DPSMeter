@@ -38,6 +38,11 @@
       <Private>False</Private>
     </Reference>
     
+    <Reference Include="UnityEngine.UI">
+      <HintPath>/home/GhostTales/.local/share/Steam/steamapps/common/Hell Clock/Hell Clock_Data/Managed/UnityEngine.UI.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+
     <Reference Include="Unity.TextMeshPro">
       <HintPath>/home/GhostTales/.local/share/Steam/steamapps/common/Hell Clock/Hell Clock_Data/Managed/Unity.TextMeshPro.dll</HintPath>
       <Private>False</Private>
