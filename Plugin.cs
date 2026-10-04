@@ -23,7 +23,7 @@ namespace DPSMeter
             ToggleKey = Config.Bind("Keys", "Toggle", KeyCode.F8, "Show/hide the meter");
             ResetKey = Config.Bind("Keys", "Reset", KeyCode.F9, "Reset the meter");
             IdleTimeout = Config.Bind("Meter", "IdleTimeout", 5f, "Seconds without dealing damage before the fight timer stops");
-            CapOverkill = Config.Bind("Meter", "CapOverkill", true, "Do not count damage beyond the target's remaining life");
+            CapOverkill = Config.Bind("Meter", "CapOverkill", false, "Do not count damage beyond the target's remaining life (off = show true damage)");
             ShowBreakdown = Config.Bind("Meter", "ShowBreakdown", true, "Show per-skill breakdown");
 
             var go = new GameObject("DPSMeter");
