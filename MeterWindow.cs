@@ -41,13 +41,19 @@ namespace DPSMeter
         static string Hex(Color c) => ColorUtility.ToHtmlStringRGB(c);
 
         internal static bool IsMouseOver;
-        static Rect _screenRect;
+        static Rect _screenRect, _advScreenRect;
         static bool _shown;
+
+        Rect _advRect = new Rect(340, 200, 640, 480);
+        string _advSkill;
+        string _advKey;
+        Vector2 _listScroll, _chainScroll;
 
         void Update()
         {
             var m = Input.mousePosition;
-            IsMouseOver = _shown && _screenRect.Contains(new Vector2(m.x, Screen.height - m.y));
+            var mp = new Vector2(m.x, Screen.height - m.y);
+            IsMouseOver = _shown && (_screenRect.Contains(mp) || (_advSkill != null && _advScreenRect.Contains(mp)));
             if (Input.GetKeyDown(Plugin.ToggleKey.Value)) _visible = !_visible;
             if (Input.GetKeyDown(Plugin.ResetKey.Value)) Tracker.Reset();
         }
@@ -72,6 +78,7 @@ namespace DPSMeter
             _big = new GUIStyle(_label) { fontSize = 26, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleLeft };
             _big.normal.textColor = Color.white;
 
+            _listBtn = new GUIStyle(GUI.skin.button) { fontSize = 12, richText = true, alignment = TextAnchor.MiddleLeft };
             _tabStyle = new GUIStyle(_label) { fontSize = 12, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
         }
 
@@ -85,6 +92,15 @@ namespace DPSMeter
             _rect.height = _contentH + Pad * 2;
             _rect = GUI.Window(918273, _rect, Draw, "", GUIStyle.none);
             _screenRect = _rect;
+            if (_advSkill != null)
+            {
+                _advRect.width = Mathf.Min(640f, Screen.width - 20f);
+                _advRect.height = Mathf.Min(480f, Screen.height - 20f);
+                _advRect = GUI.Window(918274, _advRect, DrawAdvanced, "", GUIStyle.none);
+                _advScreenRect = _advRect;
+                _advRect.x = Mathf.Clamp(_advRect.x, 0, Screen.width - 40);
+                _advRect.y = Mathf.Clamp(_advRect.y, 0, Screen.height - 40);
+            }
             _rect.x = Mathf.Clamp(_rect.x, 0, Screen.width - 40);
             _rect.y = Mathf.Clamp(_rect.y, 0, Screen.height - 40);
         }
@@ -192,8 +208,12 @@ namespace DPSMeter
             {
                 var e = kv.Value;
                 string split = TypeSplit(e.ByType);
-                Bar(kv.Key, Fmt(e.Total), 100.0 * e.Total / Tracker.Total, e.ByType,
-                    $"{split} · {e.Hits} hits · {(e.Hits > 0 ? 100.0 * e.Crits / e.Hits : 0):0}% crit · max {Fmt(e.Max)}");
+                if (Bar(kv.Key, Fmt(e.Total), 100.0 * e.Total / Tracker.Total, e.ByType,
+                    $"{split} · {e.Hits} hits · {(e.Hits > 0 ? 100.0 * e.Crits / e.Hits : 0):0}% crit · max {Fmt(e.Max)} · click for details"))
+                {
+                    _advSkill = _advSkill == kv.Key ? null : kv.Key;
+                    _advKey = null;
+                }
             }
         }
 
@@ -226,9 +246,10 @@ namespace DPSMeter
         }
 
         // Bar filled proportional to pct, split into coloured segments by damage type
-        void Bar(string name, string value, double pct, double[] byType, string tooltip)
+        bool Bar(string name, string value, double pct, double[] byType, string tooltip)
         {
             Rect r = GUILayoutUtility.GetRect(1, 22, GUIStyle.none, GUILayout.ExpandWidth(true));
+            bool clicked = GUI.Button(r, GUIContent.none, GUIStyle.none);
             const float pctW = 40f, valW = 56f;
             if (Event.current.type == EventType.Repaint)
             {
@@ -256,7 +277,71 @@ namespace DPSMeter
             GUILayout.Space(2);
             if (Event.current.type == EventType.Repaint && r.Contains(Event.current.mousePosition))
                 _hover = tooltip;
+            return clicked;
         }
+
+        void DrawAdvanced(int id)
+        {
+            if (Event.current.type == EventType.Repaint)
+            {
+                var full = new Rect(0, 0, _advRect.width, _advRect.height);
+                Round(full, new Color(1f, 1f, 1f, 0.16f), 10f);
+                Round(new Rect(1, 1, full.width - 2, full.height - 2), new Color(0.07f, 0.07f, 0.09f, 0.97f), 9f);
+            }
+            Tracker.Skills.TryGetValue(_advSkill ?? "", out var entry);
+            float w = _advRect.width - Pad * 2, h = _advRect.height - Pad * 2;
+            const float listW = 200f;
+            GUILayout.BeginArea(new Rect(Pad, Pad, w, h));
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("ADVANCED: " + _advSkill, _title);
+            GUILayout.FlexibleSpace();
+            if (GUILayout.Button("Close", GUILayout.Width(60))) _advSkill = null;
+            GUILayout.EndHorizontal();
+            Divider();
+
+            if (entry == null || _advSkill == null)
+            {
+                GUILayout.Label("No data for this skill (meter was reset).", _hint);
+                GUILayout.EndArea();
+                GUI.DragWindow();
+                return;
+            }
+
+            GUILayout.BeginHorizontal();
+            GUILayout.BeginVertical(GUILayout.Width(listW));
+            GUILayout.Label($"Unique damage numbers ({entry.Uniques.Count})", _small);
+            _listScroll = GUILayout.BeginScrollView(_listScroll, GUILayout.Width(listW), GUILayout.Height(h - 70));
+            foreach (var kv in entry.Uniques.OrderByDescending(k => k.Value.Value))
+            {
+                var u = kv.Value;
+                bool sel = kv.Key == _advKey;
+                string text = (u.Crit ? "<color=#ffd27a>" : "") + u.Value.ToString("N0") + (u.Crit ? " crit</color>" : "") + $"  <color=#9a9aa5>x{u.Count}</color>";
+                var old = GUI.backgroundColor;
+                if (sel) GUI.backgroundColor = new Color(1f, 0.45f, 0.3f);
+                if (GUILayout.Button(text, _listBtn)) _advKey = kv.Key;
+                GUI.backgroundColor = old;
+            }
+            GUILayout.EndScrollView();
+            GUILayout.EndVertical();
+
+            GUILayout.Space(8);
+            GUILayout.BeginVertical();
+            _chainScroll = GUILayout.BeginScrollView(_chainScroll, GUILayout.Height(h - 50));
+            if (_advKey != null && entry.Uniques.TryGetValue(_advKey, out var sel2))
+            {
+                GUILayout.Label($"<b>{sel2.Value:N0}</b>{(sel2.Crit ? " (crit)" : "")}  seen {sel2.Count} times", _title);
+                GUILayout.Space(4);
+                foreach (var line in sel2.Chain) GUILayout.Label(line.Length == 0 ? " " : line, _label);
+            }
+            else GUILayout.Label("Select a damage number to see the modifier chain.", _hint);
+            GUILayout.EndScrollView();
+            GUILayout.EndVertical();
+            GUILayout.EndHorizontal();
+            GUILayout.EndArea();
+            GUI.DragWindow(new Rect(0, 0, _advRect.width - 80, 28));
+        }
+
+        GUIStyle _listBtn;
 
         string _hover = "", _hoverShown = "";
 
