@@ -26,6 +26,8 @@ namespace DPSMeter
         public static readonly double[] TypeTotals = new double[TypeCount];
         public static readonly int[] TypeHits = new int[TypeCount];
         public static double DotTotal;
+        public static double PeakDps;
+        const float PeakMinSeconds = 3f; // avoids inflated values from the first hit
 
         public static readonly Dictionary<string, Entry> Skills = new Dictionary<string, Entry>();
         public static double Total;
@@ -41,6 +43,7 @@ namespace DPSMeter
             Array.Clear(TypeTotals, 0, TypeCount);
             Array.Clear(TypeHits, 0, TypeCount);
             DotTotal = 0;
+            PeakDps = 0;
             Total = Highest = 0;
             Hits = Crits = 0;
             Start = -1f;
@@ -76,6 +79,7 @@ namespace DPSMeter
             Total += value;
             Hits++;
             if (d.IsCritical) Crits++;
+            if (Elapsed >= PeakMinSeconds) PeakDps = Math.Max(PeakDps, Dps);
             if (value > Highest) Highest = value;
 
             string name = SkillName(d);
