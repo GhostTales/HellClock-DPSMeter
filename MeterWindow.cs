@@ -15,7 +15,8 @@ namespace DPSMeter
         static readonly string[] Tabs = { "Skills", "Damage Types" };
 
         GUIStyle _pct, _label, _right, _title, _hint, _big, _small, _tabStyle;
-        float _lastH = 100;
+        const float Pad = 10f;
+        float _contentH = 100;
         Texture2D _bg, _panel, _bar, _line;
 
         static Texture2D Tex(Color c)
@@ -80,9 +81,9 @@ namespace DPSMeter
             if (!_visible) return;
             if (_label == null || _bg == null) Init();
 
-            _rect.height = 0;
-            _rect = GUILayout.Window(918273, _rect, Draw, "", GUILayout.Width(Width));
-            _lastH = _rect.height;
+            _rect.width = Width;
+            _rect.height = _contentH + Pad * 2;
+            _rect = GUI.Window(918273, _rect, Draw, "", GUIStyle.none);
             _screenRect = _rect;
             _rect.x = Mathf.Clamp(_rect.x, 0, Screen.width - 40);
             _rect.y = Mathf.Clamp(_rect.y, 0, Screen.height - 40);
@@ -91,7 +92,13 @@ namespace DPSMeter
         void Draw(int id)
         {
             if (Event.current.type == EventType.Repaint)
-                GUI.DrawTexture(new Rect(0, 0, Width, Mathf.Max(_lastH, 40)), _bg);
+            {
+                var full = new Rect(0, 0, _rect.width, _rect.height);
+                Round(full, new Color(1f, 1f, 1f, 0.16f), 10f);
+                Round(new Rect(1, 1, full.width - 2, full.height - 2), new Color(0.07f, 0.07f, 0.09f, 0.95f), 9f);
+            }
+            GUILayout.BeginArea(new Rect(Pad, Pad, Width - Pad * 2, 4000));
+            GUILayout.BeginVertical();
             GUILayout.BeginHorizontal();
             GUILayout.Label("DPS METER", _title);
             GUILayout.FlexibleSpace();
@@ -131,7 +138,20 @@ namespace DPSMeter
             Divider();
             GUILayout.Label(_hoverShown.Length > 0 ? _hoverShown : " ", _hint);
             GUILayout.Label($"{Plugin.ToggleKey.Value}: hide   {Plugin.ResetKey.Value}: reset   drag to move", _hint);
+            GUILayout.EndVertical();
+            if (Event.current.type == EventType.Repaint) _contentH = GUILayoutUtility.GetLastRect().height;
+            GUILayout.EndArea();
             GUI.DragWindow();
+        }
+
+        // Rounded rectangle; uniform radius, or per-corner (TL, TR, BR, BL)
+        void Round(Rect r, Color c, float radius) => Round(r, c, new Vector4(radius, radius, radius, radius));
+
+        void Round(Rect r, Color c, Vector4 radii)
+        {
+            float max = Mathf.Min(r.width, r.height) * 0.5f;
+            radii = new Vector4(Mathf.Min(radii.x, max), Mathf.Min(radii.y, max), Mathf.Min(radii.z, max), Mathf.Min(radii.w, max));
+            GUI.DrawTexture(r, _bar, ScaleMode.StretchToFill, true, 0f, c, Vector4.zero, radii);
         }
 
         static string TypeSplit(double[] by)
@@ -157,11 +177,10 @@ namespace DPSMeter
                 if (Event.current.type != EventType.Repaint) continue;
 
                 var old = GUI.color;
-                GUI.color = active ? new Color(1f, 1f, 1f, 0.08f) : hover ? new Color(1f, 1f, 1f, 0.04f) : new Color(0, 0, 0, 0);
-                GUI.DrawTexture(r, _bar);
-                GUI.color = active ? accent : new Color(1f, 1f, 1f, hover ? 0.35f : 0.12f);
-                GUI.DrawTexture(new Rect(r.x, r.yMax - 2, r.width, active ? 2 : 1), _bar);
-                GUI.color = old;
+                if (active || hover)
+                    Round(new Rect(r.x + 2, r.y, r.width - 4, r.height - 3), new Color(1f, 1f, 1f, active ? 0.09f : 0.04f), 5f);
+                Round(new Rect(r.x + 2, r.yMax - 2, r.width - 4, active ? 2 : 1),
+                    active ? accent : new Color(1f, 1f, 1f, hover ? 0.35f : 0.12f), 1f);
                 _tabStyle.normal.textColor = active ? Color.white : new Color(0.65f, 0.65f, 0.7f);
                 GUI.Label(r, Tabs[i], _tabStyle);
             }
@@ -213,23 +232,22 @@ namespace DPSMeter
             const float pctW = 40f, valW = 56f;
             if (Event.current.type == EventType.Repaint)
             {
-                GUI.DrawTexture(r, _panel);
+                Round(r, new Color(1f, 1f, 1f, 0.06f), 5f);
                 double sum = byType.Sum();
                 float w = r.width * Mathf.Clamp01((float)(pct / 100.0));
                 float x = r.x;
-                var old = GUI.color;
+                int first = -1, last = -1;
+                for (int i = 0; i < Tracker.TypeCount; i++)
+                    if (byType[i] > 0) { if (first < 0) first = i; last = i; }
                 for (int i = 0; i < Tracker.TypeCount && sum > 0; i++)
                 {
                     if (byType[i] <= 0) continue;
                     float sw = w * (float)(byType[i] / sum);
                     var c = Tracker.TypeColors[i];
-                    GUI.color = new Color(c.r, c.g, c.b, 0.4f);
-                    GUI.DrawTexture(new Rect(x, r.y, sw, r.height), _bar);
-                    GUI.color = new Color(c.r, c.g, c.b, 1f);
-                    GUI.DrawTexture(new Rect(x, r.yMax - 2, sw, 2), _bar);
+                    float rl = i == first ? 5f : 0f, rr = i == last ? 5f : 0f;
+                    Round(new Rect(x, r.y, sw, r.height), new Color(c.r, c.g, c.b, 0.55f), new Vector4(rl, rr, rr, rl));
                     x += sw;
                 }
-                GUI.color = old;
             }
             float right = r.xMax - 5;
             ShadowLabel(new Rect(right - pctW, r.y, pctW, r.height), pct.ToString("0") + "%", _pct);
