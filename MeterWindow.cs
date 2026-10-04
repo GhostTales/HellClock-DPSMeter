@@ -7,6 +7,7 @@ namespace DPSMeter
     internal class MeterWindow : MonoBehaviour
     {
         const float Width = 300f;
+        const float LeftColW = 135f, RightColW = 135f;
 
         Rect _rect = new Rect(20, 200, Width, 120);
         bool _visible = true;
@@ -100,12 +101,13 @@ namespace DPSMeter
 
             // Headline numbers
             GUILayout.BeginHorizontal();
-            GUILayout.BeginVertical();
-            GUILayout.Label(Fmt(Tracker.Dps), _big);
-            GUILayout.Label("damage per second", _small);
+            GUILayout.BeginVertical(GUILayout.Width(LeftColW));
+            GUILayout.Label(Fmt(Tracker.Dps), _big, GUILayout.Width(LeftColW));
+            GUILayout.Label("damage per second", _small, GUILayout.Width(LeftColW));
+            GUILayout.Label("Peak <color=#ffd27a>" + Fmt(Tracker.PeakDps) + "</color>", _small, GUILayout.Width(LeftColW));
             GUILayout.EndVertical();
             GUILayout.FlexibleSpace();
-            GUILayout.BeginVertical(GUILayout.Width(140));
+            GUILayout.BeginVertical(GUILayout.Width(RightColW));
             Stat("Total", Fmt(Tracker.Total));
             Stat("Highest hit", Fmt(Tracker.Highest));
             Stat("Hits", Tracker.Hits.ToString());
