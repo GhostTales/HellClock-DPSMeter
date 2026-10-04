@@ -13,7 +13,7 @@ namespace DPSMeter
         int _tab;
         static readonly string[] Tabs = { "Skills", "Damage Types" };
 
-        GUIStyle _pct, _label, _right, _title, _hint, _big, _small, _tabBtn;
+        GUIStyle _pct, _label, _right, _title, _hint, _big, _small, _tabStyle;
         float _lastH = 100;
         Texture2D _bg, _panel, _bar, _line;
 
@@ -27,6 +27,9 @@ namespace DPSMeter
 
         static string Fmt(double v)
         {
+            if (v >= 1e18) return (v / 1e18).ToString("0.##") + "Qi";
+            if (v >= 1e15) return (v / 1e15).ToString("0.##") + "Qa";
+            if (v >= 1e12) return (v / 1e12).ToString("0.##") + "T";
             if (v >= 1e9) return (v / 1e9).ToString("0.##") + "B";
             if (v >= 1e6) return (v / 1e6).ToString("0.##") + "M";
             if (v >= 1e3) return (v / 1e3).ToString("0.##") + "K";
@@ -67,7 +70,7 @@ namespace DPSMeter
             _big = new GUIStyle(_label) { fontSize = 26, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleLeft };
             _big.normal.textColor = Color.white;
 
-            _tabBtn = new GUIStyle(GUI.skin.button) { fontSize = 11, fontStyle = FontStyle.Bold };
+            _tabStyle = new GUIStyle(_label) { fontSize = 12, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
         }
 
         void OnGUI()
@@ -114,15 +117,7 @@ namespace DPSMeter
             if (Plugin.ShowBreakdown.Value)
             {
                 Divider();
-                GUILayout.BeginHorizontal();
-                for (int i = 0; i < Tabs.Length; i++)
-                {
-                    var old = GUI.color;
-                    GUI.color = i == _tab ? new Color(1f, 0.45f, 0.35f) : new Color(1f, 1f, 1f, 0.6f);
-                    if (GUILayout.Button(Tabs[i], _tabBtn)) _tab = i;
-                    GUI.color = old;
-                }
-                GUILayout.EndHorizontal();
+                DrawTabs();
                 GUILayout.Space(4);
 
                 if (Tracker.Total <= 0) GUILayout.Label("Waiting for damage...", _hint);
@@ -144,6 +139,30 @@ namespace DPSMeter
             var parts = Enumerable.Range(0, Tracker.TypeCount).Where(i => by[i] > 0).OrderByDescending(i => by[i])
                 .Select(i => $"{Tracker.TypeNames[i]} {100.0 * by[i] / sum:0}%");
             return string.Join(" / ", parts);
+        }
+
+        void DrawTabs()
+        {
+            Rect row = GUILayoutUtility.GetRect(1, 26, GUIStyle.none, GUILayout.ExpandWidth(true));
+            float w = row.width / Tabs.Length;
+            var accent = new Color(1f, 0.45f, 0.3f);
+            for (int i = 0; i < Tabs.Length; i++)
+            {
+                var r = new Rect(row.x + i * w, row.y, w, row.height);
+                bool active = i == _tab;
+                bool hover = r.Contains(Event.current.mousePosition);
+                if (GUI.Button(r, new GUIContent(""), GUIStyle.none)) _tab = i;
+                if (Event.current.type != EventType.Repaint) continue;
+
+                var old = GUI.color;
+                GUI.color = active ? new Color(1f, 1f, 1f, 0.08f) : hover ? new Color(1f, 1f, 1f, 0.04f) : new Color(0, 0, 0, 0);
+                GUI.DrawTexture(r, _bar);
+                GUI.color = active ? accent : new Color(1f, 1f, 1f, hover ? 0.35f : 0.12f);
+                GUI.DrawTexture(new Rect(r.x, r.yMax - 2, r.width, active ? 2 : 1), _bar);
+                GUI.color = old;
+                _tabStyle.normal.textColor = active ? Color.white : new Color(0.65f, 0.65f, 0.7f);
+                GUI.Label(r, Tabs[i], _tabStyle);
+            }
         }
 
         void DrawSkills()
