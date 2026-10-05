@@ -117,13 +117,13 @@ namespace DPSMeter
         static readonly System.Text.RegularExpressions.Regex NumberTokens =
             new System.Text.RegularExpressions.Regex(@"[+\-]?\d+([.,]\d+)?%?");
 
-        static string Loc(string key)
+        internal static string Loc(string key)
         {
             try { return Tags.Replace(RosettaStone.Interpret(key), "").Trim(); }
             catch { return key; }
         }
 
-        static string DescribeKey(string key)
+        internal static string DescribeKey(string key)
         {
             if (!RelicKey.IsMatch(key)) return key;
             try
@@ -164,7 +164,7 @@ namespace DPSMeter
                 foreach (var m in src)
                 {
                     if (m.EStatDefinition != (EStatDefinition)stat.StatDefinition.HashID) continue;
-                    items.Add(("[skill] " + (SourceModifierNames.Get(m) ?? "modifier"), m.ModifierType, m.Value, Skill));
+                    items.Add((SourceModifierNames.Describe(m) ?? "[skill] modifier", m.ModifierType, m.Value, Skill));
                 }
             }
 
@@ -216,9 +216,31 @@ namespace DPSMeter
         // Status effects are the "conditionals": they only exist while their condition holds
         static Dictionary<HellClock.SkillTree.SkillTreeNodeDefinition, HellClock.SkillTree.SkillTreeDefinition> _nodeTrees;
 
-        static string DescribeNode(HellClock.SkillTree.SkillTreeNode node)
+        static string DescribeNode(HellClock.SkillTree.SkillTreeNode node) => DescribeNodeDef(node.SkillTreeNodeDefinition);
+
+        static void EnsureTrees()
         {
-            var def = node.SkillTreeNodeDefinition;
+            if (_nodeTrees != null) return;
+            _nodeTrees = new Dictionary<HellClock.SkillTree.SkillTreeNodeDefinition, HellClock.SkillTree.SkillTreeDefinition>();
+            foreach (var t in UnityEngine.Resources.FindObjectsOfTypeAll<HellClock.SkillTree.SkillTreeDefinition>())
+                foreach (var n in t.Nodes)
+                    if (n != null) _nodeTrees[n] = t;
+        }
+
+        internal static string DescribeAffixOwner(object affix)
+        {
+            try
+            {
+                EnsureTrees();
+                foreach (var def in _nodeTrees.Keys)
+                    if (def.Affixes.Contains(affix as HellClock.SkillTree.SkillTreeNodeAffixDefinition)) return DescribeNodeDef(def);
+            }
+            catch { }
+            return null;
+        }
+
+        internal static string DescribeNodeDef(HellClock.SkillTree.SkillTreeNodeDefinition def)
+        {
             string name = null;
             try { name = def?.PrettyName; } catch { }
             name = string.IsNullOrEmpty(name) ? def?.name : Tags.Replace(name, "").Trim();
@@ -226,13 +248,7 @@ namespace DPSMeter
             string kind = "skill tree", tree = null;
             try
             {
-                if (_nodeTrees == null)
-                {
-                    _nodeTrees = new Dictionary<HellClock.SkillTree.SkillTreeNodeDefinition, HellClock.SkillTree.SkillTreeDefinition>();
-                    foreach (var t in UnityEngine.Resources.FindObjectsOfTypeAll<HellClock.SkillTree.SkillTreeDefinition>())
-                        foreach (var n in t.Nodes)
-                            if (n != null) _nodeTrees[n] = t;
-                }
+                EnsureTrees();
                 if (def != null && _nodeTrees.TryGetValue(def, out var t2))
                 {
                     if (t2 is HellClock.SkillTree.ConstellationSkillTreeDefinition c)
@@ -255,7 +271,7 @@ namespace DPSMeter
             switch (key)
             {
                 case null: return "?";
-                case string s: return DescribeKey(s);
+                case string s: return SourceModifierNames.DescribeKey(s) ?? DescribeKey(s);
                 case Stat st: return "stat " + StatName(st);
                 case StatModifierDefinition smd: return "enemy modifier on " + smd.EStatDefinition;
                 case Modifier lm:
