@@ -41,6 +41,8 @@ namespace DPSMeter
                 case null: break;
                 case HellClock.SkillTree.SkillTreeNodeAffixDefinition a: origin = Breakdown.DescribeAffixOwner(a); break;
                 case string str: origin = Breakdown.DescribeKey(str); break;
+                case HellClock.RelicInventory.Affixes.RelicAffixDefinition ra:
+                    origin = Breakdown.RelicLabel(ra); break;
                 case UnityEngine.Object o: origin = "[skill] " + o.name; break;
                 default: origin = "[skill] " + i.Origin.GetType().Name; break;
             }
@@ -129,6 +131,33 @@ namespace DPSMeter
                 }
                 else if (!string.IsNullOrEmpty(variable) && !float.TryParse(variable, out _))
                     i.Detail = "variable " + variable;
+            }
+            catch (Exception e)
+            {
+                Plugin.Logger.LogError(e);
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(AddSkillValueModifierSkillEffectData), nameof(AddSkillValueModifierSkillEffectData.ApplySkillValueModifiers))]
+    internal static class RecordValueModifierPatch
+    {
+        static void Postfix(SkillEffectTriggerInfo skillEffectTriggerInfo, List<SkillEffectSkillModifierDefinition> modifiers, string modifierKey)
+        {
+            try
+            {
+                var behavior = skillEffectTriggerInfo.SkillBehavior;
+                if (behavior == null) return;
+                foreach (var m in modifiers)
+                {
+                    var i = new SourceModifierNames.Info { Effect = SourceModifierNames.Humanize(skillEffectTriggerInfo.SkillEffectData?.name) };
+                    var skill = skillEffectTriggerInfo.Skill;
+                    i.Origin = skill?.SourceKey;
+                    if (skill != null)
+                        foreach (var kv in skill.SkillBehaviors.Behaviors)
+                            if (kv.Value == behavior) { i.Origin = kv.Key; break; }
+                    SourceModifierNames.SetKey(modifierKey + m.SkillModifierKey + behavior.UniqueId, i);
+                }
             }
             catch (Exception e)
             {
