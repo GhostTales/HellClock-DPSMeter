@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using HellClock.Damage;
 using HellClock.Stats;
@@ -29,6 +30,7 @@ namespace DPSMeter
                 var tgt = d.Target?.Sheet;
                 if (info == null || atk == null) return lines;
                 var src = info.SourceStatModifiers;
+                _owners = BuildOwners(atk, tgt);
                 var dist = info.DamageTypeDistribution;
 
                 lines.Add($"<b>Source</b> damage multiplier x{info.BaseDamageModifier:0.###}"
@@ -87,68 +89,156 @@ namespace DPSMeter
             return lines;
         }
 
+        // Modifier -> (stat that owns it, key it was registered under); lets linked/proxied modifiers be traced to their origin
+        static Dictionary<Modifier, KeyValuePair<Stat, object>> _owners = new Dictionary<Modifier, KeyValuePair<Stat, object>>();
+
+        static Dictionary<Modifier, KeyValuePair<Stat, object>> BuildOwners(params CharacterSheet[] sheets)
+        {
+            var map = new Dictionary<Modifier, KeyValuePair<Stat, object>>();
+            foreach (var sheet in sheets)
+            {
+                if (sheet == null) continue;
+                foreach (EStatDefinition e in Enum.GetValues(typeof(EStatDefinition)))
+                {
+                    var st = sheet.GetStat(e);
+                    if (st == null) continue;
+                    foreach (var key in st.GetKeys())
+                        if (!(key is Modifier) && st.TryGetModifier(key, out var m) && !map.ContainsKey(m))
+                            map[m] = new KeyValuePair<Stat, object>(st, key);
+                }
+            }
+            return map;
+        }
+
+        static readonly System.Text.RegularExpressions.Regex RelicKey =
+            new System.Text.RegularExpressions.Regex(@"^Relic\d{5}Affix\d{3}$");
+        static readonly System.Text.RegularExpressions.Regex Tags = new System.Text.RegularExpressions.Regex("<[^>]*>");
+
+        static readonly System.Text.RegularExpressions.Regex NumberTokens =
+            new System.Text.RegularExpressions.Regex(@"[+\-]?\d+([.,]\d+)?%?");
+
+        static string Loc(string key)
+        {
+            try { return Tags.Replace(RosettaStone.Interpret(key), "").Trim(); }
+            catch { return key; }
+        }
+
+        static string DescribeKey(string key)
+        {
+            if (!RelicKey.IsMatch(key)) return key;
+            try
+            {
+                var items = HellClock.Player.PlayerController.Instance.PlayerRelicInventoryManager.AllItems;
+                foreach (var it in items)
+                {
+                    if (!(it is HellClock.RelicInventory.RelicInventoryItem relic)) continue;
+                    foreach (var fx in relic.AllAffixEffects)
+                        if (key.Equals(fx.RelicAffixKey as string))
+                            return "[relic] " + NumberTokens.Replace(Loc(fx.GetLocalizedDescription((HellClock.RelicInventory.Affixes.EAffixDescriptionOption)0)), "#");
+                }
+            }
+            catch { }
+            return key;
+        }
+
+        static string StatName(Stat st)
+        {
+            var id = (EStatDefinition)st.StatDefinition.HashID;
+            return System.Text.RegularExpressions.Regex.Replace(id.ToString(), "(?<=[a-z])(?=[A-Z])", " ");
+        }
+
         static void Chain(List<string> lines, Stat stat, List<StatModifierDefinition> src, bool target = false)
         {
             if (stat == null) return;
             string name = ((EStatDefinition)stat.StatDefinition.HashID).ToString();
-            var sb = new List<string>();
+            var items = new List<(string Label, EModifierType Type, double Value, string Color)>();
 
             foreach (var key in stat.GetKeys())
             {
                 if (!stat.TryGetModifier(key, out var m)) continue;
-                string label = Describe(key, out bool conditional);
-                sb.Add(Row(label, m.ModifierType, m.Value, conditional ? Cond : null));
+                string label = Describe(key, m, out bool conditional, 0);
+                items.Add((label, m.ModifierType, m.Value, conditional ? Cond : null));
             }
             if (src != null)
             {
                 foreach (var m in src)
                 {
                     if (m.EStatDefinition != (EStatDefinition)stat.StatDefinition.HashID) continue;
-                    sb.Add(Row("[skill] modifier", m.ModifierType, m.Value, Skill));
+                    items.Add(("[skill] modifier", m.ModifierType, m.Value, Skill));
                 }
             }
 
+            // Modifiers that change nothing (+0, 0%) are noise
+            items.RemoveAll(i => i.Type == EModifierType.Additive ? Math.Abs(i.Value) < 1e-9
+                : (i.Type == EModifierType.Multiplicative || i.Type == EModifierType.MultiplicativeAdditive) && Math.Abs(i.Value - 1) < 1e-9);
+
             double final = stat.ValueWithModifier(src);
-            if (sb.Count == 0 && (final == 0 || final == 1)) return;
+            if (items.Count == 0 && (final == 0 || final == 1)) return;
 
             lines.Add($"  {name}: base {stat.BaseValue:0.###}  =  <b>{final:0.###}</b>");
-            foreach (var s in sb) lines.Add(s);
+
+            // Same kind of modifier (ignoring roll values) collapses into one entry with a list of its values
+            foreach (var g in items.GroupBy(i => (i.Type, i.Label)).OrderBy(g => g.Key.Type == EModifierType.BaseOverride ? 0 : g.Key.Type == EModifierType.Additive ? 1 : g.Key.Type == EModifierType.MultiplicativeAdditive ? 2 : 3))
+            {
+                var list = g.ToList();
+                if (list.Count == 1)
+                {
+                    lines.Add(Row(list[0].Label, list[0].Type, list[0].Value, list[0].Color));
+                    continue;
+                }
+                string c = list[0].Color;
+                string total = list[0].Type == EModifierType.Additive ? "  (total +" + list.Sum(i => i.Value).ToString("0.###") + ")"
+                    : list[0].Type == EModifierType.MultiplicativeAdditive ? "  (total " + (list.Sum(i => i.Value - 1) * 100).ToString("0.##") + "% [+])" : "";
+                lines.Add($"      {list.Count}x " + (c != null ? $"<color={c}>{list[0].Label}</color>" : list[0].Label) + total);
+                foreach (var v in list.OrderByDescending(i => i.Value))
+                    lines.Add("            " + OpText(v.Type, v.Value));
+            }
+        }
+
+        static string OpText(EModifierType type, double value)
+        {
+            switch (type)
+            {
+                case EModifierType.Additive: return value >= 0 ? "+" + value.ToString("0.###") : value.ToString("0.###");
+                case EModifierType.Multiplicative: return ((value - 1) * 100).ToString("0.##") + "% [x]";
+                case EModifierType.MultiplicativeAdditive: return ((value - 1) * 100).ToString("0.##") + "% [+]";
+                case EModifierType.BaseOverride: return "override: " + value.ToString("0.###");
+                default: return "set " + value.ToString("0.###");
+            }
         }
 
         static string Row(string label, EModifierType type, double value, string color)
         {
-            string op;
-            switch (type)
-            {
-                case EModifierType.Additive: op = value >= 0 ? "+" + value.ToString("0.###") : value.ToString("0.###"); break;
-                case EModifierType.Multiplicative: op = "x" + value.ToString("0.###"); break;
-                case EModifierType.MultiplicativeAdditive: op = "x(1+" + (value - 1).ToString("0.###") + ") add-mult"; break;
-                case EModifierType.BaseOverride: op = "base = " + value.ToString("0.###"); break;
-                default: op = "set " + value.ToString("0.###"); break;
-            }
             string l = color != null ? $"<color={color}>{label}</color>" : label;
-            return $"      {op}   {l}";
+            return $"      {OpText(type, value)}   {l}";
         }
 
         // Status effects are the "conditionals": they only exist while their condition holds
-        static string Describe(object key, out bool conditional)
+        static string Describe(object key, Modifier mod, out bool conditional, int depth)
         {
             conditional = false;
             switch (key)
             {
                 case null: return "?";
-                case string s: return s;
+                case string s: return DescribeKey(s);
+                case Stat st: return "stat " + StatName(st);
+                case StatModifierDefinition smd: return "enemy modifier on " + smd.EStatDefinition;
+                case Modifier lm:
+                    if (depth < 4 && _owners.TryGetValue(lm, out var own))
+                    {
+                        return Describe(own.Value, lm, out conditional, depth + 1);
+                    }
+                    return "linked from another stat";
                 case StatusEffect se:
                     conditional = true;
                     return "[status] " + (se.StatusDefinition != null ? se.StatusDefinition.name : "?") + (se.StackAmount > 1 ? " x" + se.StackAmount : "");
                 case UnityEngine.Object o: return o.name;
-                case Modifier _: return "(linked stat)";
                 case HellClock.Skill.Skill sk: return "[skill] " + sk.SourceKey;
             }
             string str = key.ToString();
             var type = key.GetType();
-            if (str == type.ToString()) str = type.Name;
-            return str;
+            if (str == type.ToString()) return type.Name;
+            return type.Name + " " + str;
         }
     }
 }
