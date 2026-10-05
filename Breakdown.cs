@@ -226,8 +226,16 @@ namespace DPSMeter
 
             double final = stat.ValueWithModifier(src);
             if (items.Count == 0 && (final == 0 || final == 1)) return;
-            Emit(lines, $"  {name}: base {stat.BaseValue:0.###}  =  <b>{final:0.###}</b>", items);
+            _pctStat = stat.StatDefinition.EStatFormat == EStatFormat.PERCENTAGE;
+            try
+            {
+                Emit(lines, _pctStat ? $"  {name}: base {stat.BaseValue * 100:0.##}%  =  <b>{final * 100:0.##}%</b>" : $"  {name}: base {stat.BaseValue:0.###}  =  <b>{final:0.###}</b>", items);
+            }
+            finally { _pctStat = false; }
         }
+
+        // Additive values on percentage stats are fractions (1.24 = +124%)
+        static bool _pctStat;
 
         static void Emit(List<string> lines, string header, List<(string Label, EModifierType Type, double Value, string Color)> items)
         {
@@ -242,7 +250,7 @@ namespace DPSMeter
                     continue;
                 }
                 string c = list[0].Color;
-                string total = list[0].Type == EModifierType.Additive ? "  (total +" + list.Sum(i => i.Value).ToString("0.###") + ")"
+                string total = list[0].Type == EModifierType.Additive ? "  (total " + OpText(EModifierType.Additive, list.Sum(i => i.Value)) + ")"
                     : list[0].Type == EModifierType.MultiplicativeAdditive ? "  (total " + (list.Sum(i => i.Value - 1) * 100).ToString("0.##") + "% [+])" : "";
                 lines.Add($"      {list.Count}x " + (c != null ? $"<color={c}>{list[0].Label}</color>" : list[0].Label) + total);
                 foreach (var v in list.OrderByDescending(i => i.Value))
@@ -254,7 +262,9 @@ namespace DPSMeter
         {
             switch (type)
             {
-                case EModifierType.Additive: return value >= 0 ? "+" + value.ToString("0.###") : value.ToString("0.###");
+                case EModifierType.Additive:
+                    if (_pctStat) return (value >= 0 ? "+" : "") + (value * 100).ToString("0.##") + "%";
+                    return value >= 0 ? "+" + value.ToString("0.###") : value.ToString("0.###");
                 case EModifierType.Multiplicative: return ((value - 1) * 100).ToString("0.##") + "% [x]";
                 case EModifierType.MultiplicativeAdditive: return ((value - 1) * 100).ToString("0.##") + "% [+]";
                 case EModifierType.BaseOverride: return "override: " + value.ToString("0.###");
