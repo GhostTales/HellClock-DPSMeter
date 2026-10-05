@@ -284,6 +284,25 @@ namespace DPSMeter
             return clicked;
         }
 
+        float _copiedUntil;
+
+        void CopyText(Tracker.Entry entry, bool all)
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("Hell Clock DPS Meter - " + _advSkill);
+            foreach (var kv in entry.Uniques.OrderByDescending(k => k.Value.Value))
+            {
+                if (!all && kv.Key != _advKey) continue;
+                var u = kv.Value;
+                sb.AppendLine();
+                sb.AppendLine($"== {u.Value:N0}{(u.Crit ? " (crit)" : "")} - seen {u.Count} times ==");
+                foreach (var line in u.Chain)
+                    sb.AppendLine(System.Text.RegularExpressions.Regex.Replace(line, "<[^>]*>", "").TrimEnd());
+            }
+            GUIUtility.systemCopyBuffer = sb.ToString();
+            _copiedUntil = Time.unscaledTime + 2f;
+        }
+
         static int Indent(string l)
         {
             int n = 0;
@@ -340,6 +359,9 @@ namespace DPSMeter
             GUILayout.BeginHorizontal();
             GUILayout.Label("ADVANCED: " + _advSkill, _title);
             GUILayout.FlexibleSpace();
+            if (Time.unscaledTime < _copiedUntil) GUILayout.Label("<color=#8fe38f>Copied!</color>", _small);
+            if (entry != null && _advKey != null && GUILayout.Button("Copy", GUILayout.Width(60))) CopyText(entry, false);
+            if (entry != null && GUILayout.Button("Copy all", GUILayout.Width(70))) CopyText(entry, true);
             if (GUILayout.Button("Close", GUILayout.Width(60))) _advSkill = null;
             GUILayout.EndHorizontal();
             Divider();
