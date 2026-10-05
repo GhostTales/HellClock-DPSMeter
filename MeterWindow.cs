@@ -18,15 +18,6 @@ namespace DPSMeter
         GUIStyle _pct, _label, _right, _title, _hint, _big, _small, _tabStyle;
         const float Pad = 10f;
         float _contentH = 100;
-        Texture2D _bg, _panel, _bar, _line;
-
-        static Texture2D Tex(Color c)
-        {
-            var t = new Texture2D(1, 1) { hideFlags = HideFlags.HideAndDontSave };
-            t.SetPixel(0, 0, c);
-            t.Apply();
-            return t;
-        }
 
         static string Fmt(double v)
         {
@@ -48,7 +39,7 @@ namespace DPSMeter
         Rect _advRect = new Rect(340, 200, 640, 480);
         string _advSkill;
         string _advKey;
-        Vector2 _listScroll, _chainScroll;
+        readonly Gui.Scroll _listScroll = new Gui.Scroll(), _chainScroll = new Gui.Scroll();
 
         const float Grip = 14f, MinW = 420f, MinH = 300f;
         int _corner = -1;
@@ -92,11 +83,6 @@ namespace DPSMeter
 
         void Init()
         {
-            _bg = Tex(new Color(0.07f, 0.07f, 0.09f, 0.94f));
-            _panel = Tex(new Color(1f, 1f, 1f, 0.06f));
-            _bar = Tex(Color.white);
-            _line = Tex(new Color(1f, 1f, 1f, 0.15f));
-
             _label = new GUIStyle(GUI.skin.label) { fontSize = 12, richText = true, wordWrap = false };
             _label.normal.textColor = new Color(0.9f, 0.9f, 0.9f);
             _right = new GUIStyle(_label) { alignment = TextAnchor.MiddleRight };
@@ -110,7 +96,6 @@ namespace DPSMeter
             _big = new GUIStyle(_label) { fontSize = 26, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleLeft };
             _big.normal.textColor = Color.white;
 
-            _listBtn = new GUIStyle(GUI.skin.button) { fontSize = 12, richText = true, alignment = TextAnchor.MiddleLeft };
             _vtab = new GUIStyle(_label) { fontSize = 12, richText = true, alignment = TextAnchor.MiddleLeft };
             _vtabSel = new GUIStyle(_vtab);
             _fold = new GUIStyle(_label) { alignment = TextAnchor.MiddleLeft };
@@ -121,7 +106,7 @@ namespace DPSMeter
         {
             _shown = _visible;
             if (!_visible) return;
-            if (_label == null || _bg == null) Init();
+            if (_label == null) Init();
 
             _rect.width = Width;
             _rect.height = _contentH + Pad * 2;
@@ -195,15 +180,8 @@ namespace DPSMeter
             GUI.DragWindow();
         }
 
-        // Rounded rectangle; uniform radius, or per-corner (TL, TR, BR, BL)
-        void Round(Rect r, Color c, float radius) => Round(r, c, new Vector4(radius, radius, radius, radius));
-
-        void Round(Rect r, Color c, Vector4 radii)
-        {
-            float max = Mathf.Min(r.width, r.height) * 0.5f;
-            radii = new Vector4(Mathf.Min(radii.x, max), Mathf.Min(radii.y, max), Mathf.Min(radii.z, max), Mathf.Min(radii.w, max));
-            GUI.DrawTexture(r, _bar, ScaleMode.StretchToFill, true, 0f, c, Vector4.zero, radii);
-        }
+        static void Round(Rect r, Color c, float radius) => Gui.Round(r, c, radius);
+        static void Round(Rect r, Color c, Vector4 radii) => Gui.Round(r, c, radii);
 
         static string TypeSplit(double[] by)
         {
@@ -363,7 +341,7 @@ namespace DPSMeter
                 GUILayout.Space(ind * 3f);
                 if (parent)
                 {
-                    if (GUILayout.Button(closed ? "\u25B6" : "\u25BC", _fold, GUILayout.Width(14)))
+                    if (Gui.IconButton(closed ? "\u25B6" : "\u25BC"))
                     {
                         if (closed) _collapsed.Remove(id); else _collapsed.Add(id);
                     }
@@ -401,9 +379,9 @@ namespace DPSMeter
             GUILayout.Label("ADVANCED: " + _advSkill, _title);
             GUILayout.FlexibleSpace();
             if (Time.unscaledTime < _copiedUntil) GUILayout.Label("<color=#8fe38f>Copied!</color>", _small);
-            if (entry != null && _advKey != null && GUILayout.Button("Copy", GUILayout.Width(60))) CopyText(entry, false);
-            if (entry != null && GUILayout.Button("Copy all", GUILayout.Width(70))) CopyText(entry, true);
-            if (GUILayout.Button("Close", GUILayout.Width(60))) _advSkill = null;
+            if (entry != null && _advKey != null && Gui.Button("Copy", 60)) CopyText(entry, false);
+            if (entry != null && Gui.Button("Copy all", 70)) CopyText(entry, true);
+            if (Gui.Button("Close", 60, accent: true)) _advSkill = null;
             GUILayout.EndHorizontal();
             Divider();
 
@@ -418,7 +396,7 @@ namespace DPSMeter
             GUILayout.BeginHorizontal();
             GUILayout.BeginVertical(GUILayout.Width(listW));
             GUILayout.Label($"Unique damage numbers ({entry.Uniques.Count})", _small);
-            _listScroll = GUILayout.BeginScrollView(_listScroll, GUILayout.Width(listW), GUILayout.Height(h - 70));
+            Gui.BeginScroll(_listScroll, listW, h - 70);
             foreach (var kv in entry.Uniques.OrderByDescending(k => k.Value.Value))
             {
                 var u = kv.Value;
@@ -434,12 +412,12 @@ namespace DPSMeter
                 if (GUI.Button(tr, GUIContent.none, GUIStyle.none)) _advKey = kv.Key;
                 GUILayout.Space(2);
             }
-            GUILayout.EndScrollView();
+            Gui.EndScroll(_listScroll);
             GUILayout.EndVertical();
 
             GUILayout.Space(8);
             GUILayout.BeginVertical();
-            _chainScroll = GUILayout.BeginScrollView(_chainScroll, GUILayout.Height(h - 50));
+            Gui.BeginScroll(_chainScroll, 0, h - 50);
             if (_advKey != null && entry.Uniques.TryGetValue(_advKey, out var sel2))
             {
                 GUILayout.Label($"<b>{sel2.Value:N0}</b>{(sel2.Crit ? " (crit)" : "")}  seen {sel2.Count} times", _title);
@@ -447,14 +425,14 @@ namespace DPSMeter
                 DrawChain(sel2.Chain);
             }
             else GUILayout.Label("Select a damage number to see the modifier chain.", _hint);
-            GUILayout.EndScrollView();
+            Gui.EndScroll(_chainScroll);
             GUILayout.EndVertical();
             GUILayout.EndHorizontal();
             GUILayout.EndArea();
             GUI.DragWindow(new Rect(Grip, Grip, _advRect.width - 80 - Grip, 28 - Grip));
         }
 
-        GUIStyle _listBtn, _vtab, _vtabSel, _fold;
+        GUIStyle _vtab, _vtabSel, _fold;
         readonly HashSet<string> _collapsed = new HashSet<string>();
 
         string _hover = "", _hoverShown = "";
@@ -468,12 +446,6 @@ namespace DPSMeter
             GUILayout.EndHorizontal();
         }
 
-        void Divider()
-        {
-            GUILayout.Space(3);
-            Rect r = GUILayoutUtility.GetRect(1, 1, GUIStyle.none, GUILayout.ExpandWidth(true));
-            if (Event.current.type == EventType.Repaint) GUI.DrawTexture(r, _line);
-            GUILayout.Space(3);
-        }
+        static void Divider() => Gui.Divider();
     }
 }
