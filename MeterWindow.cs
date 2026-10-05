@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System;
 using System.Linq;
 using UnityEngine;
@@ -79,6 +80,9 @@ namespace DPSMeter
             _big.normal.textColor = Color.white;
 
             _listBtn = new GUIStyle(GUI.skin.button) { fontSize = 12, richText = true, alignment = TextAnchor.MiddleLeft };
+            _vtab = new GUIStyle(_label) { fontSize = 12, richText = true, alignment = TextAnchor.MiddleLeft };
+            _vtabSel = new GUIStyle(_vtab);
+            _fold = new GUIStyle(_label) { alignment = TextAnchor.MiddleLeft };
             _tabStyle = new GUIStyle(_label) { fontSize = 12, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
         }
 
@@ -280,6 +284,47 @@ namespace DPSMeter
             return clicked;
         }
 
+        static int Indent(string l)
+        {
+            int n = 0;
+            while (n < l.Length && l[n] == ' ') n++;
+            return n;
+        }
+
+        // Indentation defines the hierarchy; a line with a deeper line after it is collapsible
+        void DrawChain(List<string> chain)
+        {
+            int hidden = int.MaxValue;
+            for (int i = 0; i < chain.Count; i++)
+            {
+                string line = chain[i];
+                if (line.Length == 0) { if (hidden == int.MaxValue) GUILayout.Space(6); continue; }
+                int ind = Indent(line);
+                if (ind <= hidden) hidden = int.MaxValue;
+                if (hidden != int.MaxValue) continue;
+
+                int j = i + 1;
+                while (j < chain.Count && chain[j].Length == 0) j++;
+                bool parent = j < chain.Count && Indent(chain[j]) > ind;
+                string id = _advSkill + "|" + _advKey + "|" + i;
+                bool closed = parent && _collapsed.Contains(id);
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(ind * 3f);
+                if (parent)
+                {
+                    if (GUILayout.Button(closed ? "\u25B6" : "\u25BC", _fold, GUILayout.Width(14)))
+                    {
+                        if (closed) _collapsed.Remove(id); else _collapsed.Add(id);
+                    }
+                }
+                else GUILayout.Space(ind == 0 ? 0f : 14f);
+                GUILayout.Label(line.TrimStart(), _label);
+                GUILayout.EndHorizontal();
+                if (closed) hidden = ind;
+            }
+        }
+
         void DrawAdvanced(int id)
         {
             if (Event.current.type == EventType.Repaint)
@@ -316,10 +361,15 @@ namespace DPSMeter
                 var u = kv.Value;
                 bool sel = kv.Key == _advKey;
                 string text = (u.Crit ? "<color=#ffd27a>" : "") + u.Value.ToString("N0") + (u.Crit ? " crit</color>" : "") + $"  <color=#9a9aa5>x{u.Count}</color>";
-                var old = GUI.backgroundColor;
-                if (sel) GUI.backgroundColor = new Color(1f, 0.45f, 0.3f);
-                if (GUILayout.Button(text, _listBtn)) _advKey = kv.Key;
-                GUI.backgroundColor = old;
+                var tr = GUILayoutUtility.GetRect(1, 24, GUIStyle.none, GUILayout.ExpandWidth(true));
+                if (Event.current.type == EventType.Repaint)
+                {
+                    bool hov = tr.Contains(Event.current.mousePosition);
+                    Round(tr, sel ? new Color(1f, 0.45f, 0.3f, 0.4f) : new Color(1f, 1f, 1f, hov ? 0.14f : 0.06f), 4f);
+                }
+                GUI.Label(new Rect(tr.x + 10, tr.y, tr.width - 10, tr.height), text, _vtab);
+                if (GUI.Button(tr, GUIContent.none, GUIStyle.none)) _advKey = kv.Key;
+                GUILayout.Space(2);
             }
             GUILayout.EndScrollView();
             GUILayout.EndVertical();
@@ -331,7 +381,7 @@ namespace DPSMeter
             {
                 GUILayout.Label($"<b>{sel2.Value:N0}</b>{(sel2.Crit ? " (crit)" : "")}  seen {sel2.Count} times", _title);
                 GUILayout.Space(4);
-                foreach (var line in sel2.Chain) GUILayout.Label(line.Length == 0 ? " " : line, _label);
+                DrawChain(sel2.Chain);
             }
             else GUILayout.Label("Select a damage number to see the modifier chain.", _hint);
             GUILayout.EndScrollView();
@@ -341,7 +391,8 @@ namespace DPSMeter
             GUI.DragWindow(new Rect(0, 0, _advRect.width - 80, 28));
         }
 
-        GUIStyle _listBtn;
+        GUIStyle _listBtn, _vtab, _vtabSel, _fold;
+        readonly HashSet<string> _collapsed = new HashSet<string>();
 
         string _hover = "", _hoverShown = "";
 
