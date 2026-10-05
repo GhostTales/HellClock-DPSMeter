@@ -1,3 +1,4 @@
+using HellClock.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -38,6 +39,7 @@ namespace DPSMeter
                     + (info.IsDamageOverTime ? ", damage over time" : "")
                     + (info.IsAreaDamage ? ", area" : "")
                     + (d.IsCritical ? ", <color=#ffd27a>CRITICAL</color>" : ""));
+                SourceMultiplierChain(lines, d, info);
                 if (src != null && src.Count > 0)
                     lines.Add($"<color={Dim}>{src.Count} skill-specific stat modifiers apply (shown as [skill])</color>");
 
@@ -123,6 +125,18 @@ namespace DPSMeter
             catch { return key; }
         }
 
+        internal static string RelicLabel(HellClock.RelicInventory.Affixes.RelicAffixDefinition def)
+        {
+            try
+            {
+                foreach (var it in HellClock.Player.PlayerController.Instance.PlayerRelicInventoryManager.AllItems)
+                    if (it is HellClock.RelicInventory.RelicInventoryItem relic && relic.GetSpecialAffix()?.RelicAffixDefinition == def)
+                        return "[relic] " + Loc(relic.LocalizedName);
+            }
+            catch { }
+            return "[relic] " + NumberTokens.Replace(Loc(def.DescriptionLocalizationKey), "#");
+        }
+
         internal static string DescribeKey(string key)
         {
             if (!RelicKey.IsMatch(key)) return key;
@@ -134,11 +148,49 @@ namespace DPSMeter
                     if (!(it is HellClock.RelicInventory.RelicInventoryItem relic)) continue;
                     foreach (var fx in relic.AllAffixEffects)
                         if (key.Equals(fx.RelicAffixKey as string))
-                            return "[relic] " + NumberTokens.Replace(Loc(fx.GetLocalizedDescription((HellClock.RelicInventory.Affixes.EAffixDescriptionOption)0)), "#");
+                            return fx == relic.GetSpecialAffix() ? "[relic] " + Loc(relic.LocalizedName) : "[relic] " + NumberTokens.Replace(Loc(fx.GetLocalizedDescription((HellClock.RelicInventory.Affixes.EAffixDescriptionOption)0)), "#");
                 }
             }
             catch { }
             return key;
+        }
+
+        static void SourceMultiplierChain(List<string> lines, DamageInstance d, DamageSourceInfo info)
+        {
+            try
+            {
+                var skill = (d.Attacker as HellClock.Skill.ISkillCaster)?.SkillsController?.GetSkill(info.SkillID);
+                var state = skill?.SkillValueModifiers?.GetValueModifier(HellClock.Skill.SkillDefinition.DamageSkillValueModifierKey);
+                if (state == null) return;
+                var items = new List<(string Label, EModifierType Type, double Value, string Color)>();
+                foreach (var key in state.GetKeys())
+                {
+                    if (!state.TryGetModifier(key, out var m)) continue;
+                    string label = Describe(key, m, out bool conditional, 0);
+                    if (m.ModifierType == EModifierType.Additive ? Math.Abs(m.Value) < 1e-9
+                        : (m.ModifierType == EModifierType.Multiplicative || m.ModifierType == EModifierType.MultiplicativeAdditive) && Math.Abs(m.Value - 1) < 1e-9) continue;
+                    items.Add((label, m.ModifierType, m.Value, conditional ? Cond : null));
+                }
+                var fi = typeof(HellClock.Skill.Effect.SkillValueModifiers).GetField("_skillValueStatModifiers", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                var statMods = fi?.GetValue(skill.SkillValueModifiers) as Dictionary<int, List<StatModifierDefinition>>;
+                if (statMods != null && statMods.TryGetValue(HellClock.Skill.SkillDefinition.DamageSkillValueModifierKey.ToHash(), out var defs))
+                {
+                    foreach (var def in defs)
+                    {
+                        float num = (float)((HellClock.Skill.ISkillCaster)d.Attacker).Sheet.GetStat(def.EStatDefinition).ValueWithModifier(skill.SkillStatModifiers.GetStatModifiers());
+                        bool mult = def.ModifierType == EModifierType.Multiplicative || def.ModifierType == EModifierType.MultiplicativeAdditive;
+                        num = mult ? HellClock.Extensions.FloatExtensions.MultipliedModifier(num, def.Value) : num * def.Value;
+                        if (mult ? Math.Abs(num - 1) < 1e-9 : Math.Abs(num) < 1e-9) continue;
+                        items.Add(($"[stat] {def.EStatDefinition}", def.ModifierType, num, null));
+                    }
+                }
+                lines.Add("");
+                Emit(lines, $"  Skill damage multiplier: base {skill.SkillDefinition.BaseDamageMod:0.###}  =  <b>{skill.DamageMod:0.###}</b>", items);
+                double ratio = info.BaseDamageModifier / skill.DamageMod;
+                if (skill.DamageMod > 0 && Math.Abs(ratio - 1) > 1e-6)
+                    lines.Add($"  Per-hit multiplier (projectile count / charged shot / pierce / effect override): x{ratio:0.###}  =  <b>{info.BaseDamageModifier:0.###}</b>");
+            }
+            catch { }
         }
 
         static string StatName(Stat st)
@@ -174,9 +226,12 @@ namespace DPSMeter
 
             double final = stat.ValueWithModifier(src);
             if (items.Count == 0 && (final == 0 || final == 1)) return;
+            Emit(lines, $"  {name}: base {stat.BaseValue:0.###}  =  <b>{final:0.###}</b>", items);
+        }
 
-            lines.Add($"  {name}: base {stat.BaseValue:0.###}  =  <b>{final:0.###}</b>");
-
+        static void Emit(List<string> lines, string header, List<(string Label, EModifierType Type, double Value, string Color)> items)
+        {
+            lines.Add(header);
             // Same kind of modifier (ignoring roll values) collapses into one entry with a list of its values
             foreach (var g in items.GroupBy(i => (i.Type, i.Label)).OrderBy(g => g.Key.Type == EModifierType.BaseOverride ? 0 : g.Key.Type == EModifierType.Additive ? 1 : g.Key.Type == EModifierType.MultiplicativeAdditive ? 2 : 3))
             {
@@ -285,6 +340,10 @@ namespace DPSMeter
                 case StatusEffect se:
                     conditional = true;
                     return "[status] " + (se.StatusDefinition != null ? se.StatusDefinition.name : "?") + (se.StackAmount > 1 ? " x" + se.StackAmount : "");
+                case HellClock.RelicInventory.Affixes.RelicAffixDefinition ra:
+                    return RelicLabel(ra);
+                case HellClock.SkillTree.SkillTreeNodeAffixDefinition na:
+                    return DescribeAffixOwner(na) ?? na.name;
                 case UnityEngine.Object o: return o.name;
                 case HellClock.Skill.Skill sk: return "[skill] " + sk.SourceKey;
             }
