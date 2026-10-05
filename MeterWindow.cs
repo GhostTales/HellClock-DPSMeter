@@ -50,11 +50,42 @@ namespace DPSMeter
         string _advKey;
         Vector2 _listScroll, _chainScroll;
 
+        const float Grip = 14f, MinW = 420f, MinH = 300f;
+        int _corner = -1;
+        Vector2 _resizeStartMouse;
+        Rect _resizeStartRect;
+
+        void UpdateResize(Vector2 mp)
+        {
+            if (_advSkill == null) { _corner = -1; return; }
+            if (_corner < 0 && Input.GetMouseButtonDown(0))
+            {
+                var r = _advRect;
+                bool l = Mathf.Abs(mp.x - r.xMin) <= Grip, rt = Mathf.Abs(mp.x - r.xMax) <= Grip;
+                bool t = Mathf.Abs(mp.y - r.yMin) <= Grip, b = Mathf.Abs(mp.y - r.yMax) <= Grip;
+                if ((l || rt) && (t || b))
+                {
+                    _corner = (rt ? 1 : 0) + (b ? 2 : 0);
+                    _resizeStartMouse = mp;
+                    _resizeStartRect = r;
+                }
+            }
+            if (_corner < 0) return;
+            if (!Input.GetMouseButton(0)) { _corner = -1; return; }
+            var d = mp - _resizeStartMouse;
+            var s = _resizeStartRect;
+            float xMin = s.xMin, xMax = s.xMax, yMin = s.yMin, yMax = s.yMax;
+            if ((_corner & 1) == 0) xMin = Mathf.Min(s.xMin + d.x, xMax - MinW); else xMax = Mathf.Max(s.xMax + d.x, xMin + MinW);
+            if ((_corner & 2) == 0) yMin = Mathf.Min(s.yMin + d.y, yMax - MinH); else yMax = Mathf.Max(s.yMax + d.y, yMin + MinH);
+            _advRect = Rect.MinMaxRect(xMin, yMin, xMax, yMax);
+        }
+
         void Update()
         {
             var m = Input.mousePosition;
             var mp = new Vector2(m.x, Screen.height - m.y);
             IsMouseOver = _shown && (_screenRect.Contains(mp) || (_advSkill != null && _advScreenRect.Contains(mp)));
+            UpdateResize(mp);
             if (Input.GetKeyDown(Plugin.ToggleKey.Value)) _visible = !_visible;
             if (Input.GetKeyDown(Plugin.ResetKey.Value)) Tracker.Reset();
         }
@@ -98,8 +129,8 @@ namespace DPSMeter
             _screenRect = _rect;
             if (_advSkill != null)
             {
-                _advRect.width = Mathf.Min(640f, Screen.width - 20f);
-                _advRect.height = Mathf.Min(480f, Screen.height - 20f);
+                _advRect.width = Mathf.Clamp(_advRect.width, Mathf.Min(MinW, Screen.width), Screen.width);
+                _advRect.height = Mathf.Clamp(_advRect.height, Mathf.Min(MinH, Screen.height), Screen.height);
                 _advRect = GUI.Window(918274, _advRect, DrawAdvanced, "", GUIStyle.none);
                 _advScreenRect = _advRect;
                 _advRect.x = Mathf.Clamp(_advRect.x, 0, Screen.width - 40);
@@ -352,6 +383,16 @@ namespace DPSMeter
                 Round(full, new Color(1f, 1f, 1f, 0.16f), 10f);
                 Round(new Rect(1, 1, full.width - 2, full.height - 2), new Color(0.07f, 0.07f, 0.09f, 0.97f), 9f);
             }
+            if (Event.current.type == EventType.Repaint)
+            {
+                var gc = new Color(1f, 1f, 1f, 0.35f);
+                foreach (var (gx, gy) in new[] { (0f, 0f), (1f, 0f), (0f, 1f), (1f, 1f) })
+                    for (int k = 1; k <= 3; k++)
+                    {
+                        float ox = gx == 0 ? 3 + k * 3 : _advRect.width - 3 - k * 3, oy = gy == 0 ? 3 : _advRect.height - 3;
+                        Round(new Rect(ox - 1, oy - (gy == 0 ? 0 : 1), 2, 2), gc, 1f);
+                    }
+            }
             Tracker.Skills.TryGetValue(_advSkill ?? "", out var entry);
             float w = _advRect.width - Pad * 2, h = _advRect.height - Pad * 2;
             const float listW = 200f;
@@ -410,7 +451,7 @@ namespace DPSMeter
             GUILayout.EndVertical();
             GUILayout.EndHorizontal();
             GUILayout.EndArea();
-            GUI.DragWindow(new Rect(0, 0, _advRect.width - 80, 28));
+            GUI.DragWindow(new Rect(Grip, Grip, _advRect.width - 80 - Grip, 28 - Grip));
         }
 
         GUIStyle _listBtn, _vtab, _vtabSel, _fold;
