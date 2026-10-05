@@ -164,7 +164,7 @@ namespace DPSMeter
                 foreach (var m in src)
                 {
                     if (m.EStatDefinition != (EStatDefinition)stat.StatDefinition.HashID) continue;
-                    items.Add(("[skill] modifier", m.ModifierType, m.Value, Skill));
+                    items.Add(("[skill] " + (SourceModifierNames.Get(m) ?? "modifier"), m.ModifierType, m.Value, Skill));
                 }
             }
 
@@ -214,6 +214,41 @@ namespace DPSMeter
         }
 
         // Status effects are the "conditionals": they only exist while their condition holds
+        static Dictionary<HellClock.SkillTree.SkillTreeNodeDefinition, HellClock.SkillTree.SkillTreeDefinition> _nodeTrees;
+
+        static string DescribeNode(HellClock.SkillTree.SkillTreeNode node)
+        {
+            var def = node.SkillTreeNodeDefinition;
+            string name = null;
+            try { name = def?.PrettyName; } catch { }
+            name = string.IsNullOrEmpty(name) ? def?.name : Tags.Replace(name, "").Trim();
+
+            string kind = "skill tree", tree = null;
+            try
+            {
+                if (_nodeTrees == null)
+                {
+                    _nodeTrees = new Dictionary<HellClock.SkillTree.SkillTreeNodeDefinition, HellClock.SkillTree.SkillTreeDefinition>();
+                    foreach (var t in UnityEngine.Resources.FindObjectsOfTypeAll<HellClock.SkillTree.SkillTreeDefinition>())
+                        foreach (var n in t.Nodes)
+                            if (n != null) _nodeTrees[n] = t;
+                }
+                if (def != null && _nodeTrees.TryGetValue(def, out var t2))
+                {
+                    if (t2 is HellClock.SkillTree.ConstellationSkillTreeDefinition c)
+                    {
+                        kind = "constellation";
+                        tree = string.IsNullOrEmpty(c.NameKey) ? null : Loc(c.NameKey);
+                    }
+                    else if (t2 is HellClock.SkillTree.GreatBellSkillTreeDefinition) kind = "great bell";
+                    else if (t2 is HellClock.Penance.PenanceSkillTreeDefinition) kind = "penance";
+                    else if (t2 is HellClock.Level.Nightmares.NightmareSkillTreeDefinition) kind = "nightmare";
+                }
+            }
+            catch { }
+            return $"[{kind}] " + (tree != null ? tree + ": " : "") + name;
+        }
+
         static string Describe(object key, Modifier mod, out bool conditional, int depth)
         {
             conditional = false;
@@ -229,6 +264,8 @@ namespace DPSMeter
                         return Describe(own.Value, lm, out conditional, depth + 1);
                     }
                     return "linked from another stat";
+                case HellClock.SkillTree.SkillTreeNode node:
+                    return DescribeNode(node);
                 case StatusEffect se:
                     conditional = true;
                     return "[status] " + (se.StatusDefinition != null ? se.StatusDefinition.name : "?") + (se.StackAmount > 1 ? " x" + se.StackAmount : "");
