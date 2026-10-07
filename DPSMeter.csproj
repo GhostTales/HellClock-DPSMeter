@@ -24,6 +24,10 @@
     <PackageReference Include="HarmonyX" Version="2.10.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Textures/*.png" LogicalName="Textures.%(Filename)%(Extension)" />
+  </ItemGroup>
+
   <!-- Add your local game DLL references in a SEPARATE ItemGroup at the bottom -->
   <ItemGroup>
     <!-- Add the newly discovered HellClock assembly -->
