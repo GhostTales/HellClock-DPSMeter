@@ -155,42 +155,130 @@ namespace DPSMeter
             return key;
         }
 
+        const System.Reflection.BindingFlags NonPublic = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
+
+        static List<(string Label, EModifierType Type, double Value, string Color)> ValueItems(HellClock.Skill.Skill skill, DamageInstance d, string valueKey)
+        {
+            var items = new List<(string Label, EModifierType Type, double Value, string Color)>();
+            var state = skill.SkillValueModifiers.GetValueModifier(valueKey);
+            if (state != null)
+            {
+                foreach (var key in state.GetKeys())
+                {
+                    if (!state.TryGetModifier(key, out var m)) continue;
+                    string label = Describe(key, m, out bool conditional, 0);
+                    items.Add((label, m.ModifierType, m.Value, conditional ? Cond : null));
+                }
+            }
+            var fi = typeof(HellClock.Skill.Effect.SkillValueModifiers).GetField("_skillValueStatModifiers", NonPublic);
+            var statMods = fi?.GetValue(skill.SkillValueModifiers) as Dictionary<int, List<StatModifierDefinition>>;
+            if (statMods != null && statMods.TryGetValue(valueKey.ToHash(), out var defs))
+            {
+                foreach (var def in defs)
+                {
+                    float num = (float)((HellClock.Skill.ISkillCaster)d.Attacker).Sheet.GetStat(def.EStatDefinition).ValueWithModifier(skill.SkillStatModifiers.GetStatModifiers());
+                    bool mult = def.ModifierType == EModifierType.Multiplicative || def.ModifierType == EModifierType.MultiplicativeAdditive;
+                    num = mult ? HellClock.Extensions.FloatExtensions.MultipliedModifier(num, def.Value) : num * def.Value;
+                    items.Add(($"[stat] {def.EStatDefinition}", def.ModifierType, num, null));
+                }
+            }
+            items.RemoveAll(i => i.Type == EModifierType.Additive ? Math.Abs(i.Value) < 1e-9
+                : (i.Type == EModifierType.Multiplicative || i.Type == EModifierType.MultiplicativeAdditive) && Math.Abs(i.Value - 1) < 1e-9);
+            return items;
+        }
+
         static void SourceMultiplierChain(List<string> lines, DamageInstance d, DamageSourceInfo info)
         {
             try
             {
                 var skill = (d.Attacker as HellClock.Skill.ISkillCaster)?.SkillsController?.GetSkill(info.SkillID);
-                var state = skill?.SkillValueModifiers?.GetValueModifier(HellClock.Skill.SkillDefinition.DamageSkillValueModifierKey);
-                if (state == null) return;
-                var items = new List<(string Label, EModifierType Type, double Value, string Color)>();
-                foreach (var key in state.GetKeys())
-                {
-                    if (!state.TryGetModifier(key, out var m)) continue;
-                    string label = Describe(key, m, out bool conditional, 0);
-                    if (m.ModifierType == EModifierType.Additive ? Math.Abs(m.Value) < 1e-9
-                        : (m.ModifierType == EModifierType.Multiplicative || m.ModifierType == EModifierType.MultiplicativeAdditive) && Math.Abs(m.Value - 1) < 1e-9) continue;
-                    items.Add((label, m.ModifierType, m.Value, conditional ? Cond : null));
-                }
-                var fi = typeof(HellClock.Skill.Effect.SkillValueModifiers).GetField("_skillValueStatModifiers", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                var statMods = fi?.GetValue(skill.SkillValueModifiers) as Dictionary<int, List<StatModifierDefinition>>;
-                if (statMods != null && statMods.TryGetValue(HellClock.Skill.SkillDefinition.DamageSkillValueModifierKey.ToHash(), out var defs))
-                {
-                    foreach (var def in defs)
-                    {
-                        float num = (float)((HellClock.Skill.ISkillCaster)d.Attacker).Sheet.GetStat(def.EStatDefinition).ValueWithModifier(skill.SkillStatModifiers.GetStatModifiers());
-                        bool mult = def.ModifierType == EModifierType.Multiplicative || def.ModifierType == EModifierType.MultiplicativeAdditive;
-                        num = mult ? HellClock.Extensions.FloatExtensions.MultipliedModifier(num, def.Value) : num * def.Value;
-                        if (mult ? Math.Abs(num - 1) < 1e-9 : Math.Abs(num) < 1e-9) continue;
-                        items.Add(($"[stat] {def.EStatDefinition}", def.ModifierType, num, null));
-                    }
-                }
+                if (skill?.SkillValueModifiers?.GetValueModifier(HellClock.Skill.SkillDefinition.DamageSkillValueModifierKey) == null) return;
                 lines.Add("");
-                Emit(lines, $"  Skill damage multiplier: base {skill.SkillDefinition.BaseDamageMod:0.###}  =  <b>{skill.DamageMod:0.###}</b>", items);
+                Emit(lines, $"  Skill damage multiplier: base {skill.SkillDefinition.BaseDamageMod:0.###}  =  <b>{skill.DamageMod:0.###}</b>",
+                    ValueItems(skill, d, HellClock.Skill.SkillDefinition.DamageSkillValueModifierKey));
                 double ratio = info.BaseDamageModifier / skill.DamageMod;
                 if (skill.DamageMod > 0 && Math.Abs(ratio - 1) > 1e-6)
-                    lines.Add($"  Per-hit multiplier (projectile count / charged shot / pierce / effect override): x{ratio:0.###}  =  <b>{info.BaseDamageModifier:0.###}</b>");
+                    PerHitChain(lines, d, skill, ratio, info);
+                BehaviorSources(lines, skill);
             }
             catch { }
+        }
+
+        // Explains the gap between the skill's damage multiplier and what the hit actually carried
+        static void PerHitChain(List<string> lines, DamageInstance d, HellClock.Skill.Skill skill, double ratio, DamageSourceInfo info)
+        {
+            double known = 1;
+            var svm = skill.SkillValueModifiers;
+            lines.Add($"  Per-hit multiplier: x{ratio:0.###}  =  <b>{info.BaseDamageModifier:0.###}</b>");
+            if (svm.HasModifierKey("Charged Shot Enabled Modifier") && svm.GetToggleValue("Charged Shot Enabled Modifier")
+                && skill.SkillDefinition is HellClock.Skill.ProjectileAttackSkillDefinition pd)
+            {
+                const string key = "Projectile Amount Modifier";
+                double baseAmount = (pd.ProjectileAmountRange.MinValue + pd.ProjectileAmountRange.MaxValue) / 2.0;
+                double amount = svm.HasModifierKey(key) ? svm.GetIncrementValue(key, baseAmount) : baseAmount;
+                known *= amount;
+                Emit(lines, $"    <color={Good}>Charged Shot</color>: every projectile merges into one hit, damage x projectile count  =  <b>x{amount:0.###}</b>", ValueItems(skill, d, key));
+            }
+            if (svm.HasModifierKey("Pierce Damage Modifier"))
+            {
+                double p = svm.GetMultiplierValue("Pierce Damage Modifier", 1f);
+                if (Math.Abs(p - 1) > 1e-6) lines.Add($"    Pierce: x{p:0.###} per target pierced before this hit");
+            }
+            if (svm.HasModifierKey("Hit Area Cascade Projectiles Damage Modifier") && skill.SkillDefinition is HellClock.Skill.ProjectileAttackSkillDefinition cd
+                && svm.GetToggleValue("Hit Area Cascade Projectiles Enabled Modifier"))
+                lines.Add($"    Cascade projectiles: x{svm.GetMultiplierValue("Hit Area Cascade Projectiles Damage Modifier", cd.CascadeProjectilesConfig.DamageMultiplier):0.###} on cascade hits");
+            double rest = ratio / known;
+            if (Math.Abs(rest - 1) > 1e-3)
+                lines.Add($"    <color={Dim}>Other per-hit factors (pierce falloff / cascade / effect override): x{rest:0.###}</color>");
+        }
+
+        static readonly string[] RelevantValueKeys = { "Damage", "Charged", "Projectile Amount", "Pierce", "Cascade", "Conversion", "Bullet" };
+
+        // Every skill-behavior source (relics, constellations...) that tweaks the skill, grouped so a unique like Energized Figurine reads as one block
+        static void BehaviorSources(List<string> lines, HellClock.Skill.Skill skill)
+        {
+            var svm = skill.SkillValueModifiers;
+            var groups = new Dictionary<string, List<string>>();
+            void Add(string origin, string text)
+            {
+                if (!groups.TryGetValue(origin, out var l)) groups[origin] = l = new List<string>();
+                l.Add(text);
+            }
+            bool Relevant(string k) => RelevantValueKeys.Any(r => k.Contains(r));
+
+            var dbl = typeof(HellClock.Skill.Effect.SkillValueModifiers).GetField("_doubleModifiers", NonPublic)?.GetValue(svm) as System.Collections.IDictionary;
+            if (dbl != null)
+                foreach (System.Collections.DictionaryEntry e in dbl)
+                {
+                    string vk = (string)e.Key;
+                    if (!Relevant(vk)) continue;
+                    var st = (HellClock.Extensions.HelperTypes.ModifiableDoubleState)e.Value;
+                    foreach (var key in st.GetKeys())
+                    {
+                        if (!(key is string ks) || !st.TryGetModifier(key, out var m)) continue;
+                        string origin = SourceModifierNames.DescribeKey(ks);
+                        if (origin == null) continue;
+                        Add(origin, $"{vk}: {OpText(m.ModifierType, m.Value)}");
+                    }
+                }
+            var tog = typeof(HellClock.Skill.Effect.SkillValueModifiers).GetField("_toggleModifiers", NonPublic)?.GetValue(svm) as Dictionary<string, Dictionary<object, bool>>;
+            if (tog != null)
+                foreach (var kv in tog)
+                {
+                    if (!Relevant(kv.Key)) continue;
+                    foreach (var t in kv.Value)
+                    {
+                        if (!(t.Key is string ks)) continue;
+                        string origin = SourceModifierNames.DescribeKey(ks);
+                        if (origin != null) Add(origin, $"{kv.Key}: {(t.Value ? "on" : "off")}");
+                    }
+                }
+            foreach (var g in groups)
+            {
+                lines.Add("");
+                lines.Add($"  <color={Good}><b>{g.Key}</b></color> (skill behavior)");
+                foreach (var t in g.Value.Distinct()) lines.Add("      " + t);
+            }
         }
 
         static string StatName(Stat st)
