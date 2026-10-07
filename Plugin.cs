@@ -16,6 +16,8 @@ namespace DPSMeter
         internal static ConfigEntry<float> IdleTimeout;
         internal static ConfigEntry<bool> CapOverkill;
         internal static ConfigEntry<bool> ShowBreakdown;
+        internal static ConfigEntry<bool> LinearTextFix;
+        internal static ConfigEntry<bool> DebugWireframe;
 
         private void Awake()
         {
@@ -25,6 +27,10 @@ namespace DPSMeter
             IdleTimeout = Config.Bind("Meter", "IdleTimeout", 5f, "Seconds without dealing damage before the fight timer stops");
             CapOverkill = Config.Bind("Meter", "CapOverkill", false, "Do not count damage beyond the target's remaining life (off = show true damage)");
             ShowBreakdown = Config.Bind("Meter", "ShowBreakdown", true, "Show per-skill breakdown");
+
+            LinearTextFix = Config.Bind("Display", "LinearTextFix", true, "Compensate text colours for the game's linear colour space (turn off if text looks too light)");
+            DebugWireframe = Config.Bind("Debug", "Wireframe", false, "Draw the layout as a wireframe (outlines of every frame)");
+            FigmaFrame.Wireframe = DebugWireframe.Value;
 
             var go = new GameObject("DPSMeter");
             DontDestroyOnLoad(go);
