@@ -9,27 +9,36 @@ namespace DPSMeter
     // plus raw mouse events.
     internal static class Gui
     {
-        internal static readonly Color Accent = new Color(1f, 0.45f, 0.3f);
-        internal static readonly Color Gold = new Color(1f, 0.82f, 0.45f);
+        internal static readonly Color Accent = new Color(1f, 0.635f, 0.169f);
+        internal static readonly Color Primary = new Color(0xF6 / 255f, 0x4C / 255f, 0x2C / 255f);
         internal static readonly Color Text = new Color(0.9f, 0.9f, 0.9f);
-        internal static readonly Color Muted = new Color(0.65f, 0.65f, 0.7f);
-        internal static readonly Color Bg = new Color(0.07f, 0.07f, 0.09f, 0.95f);
-        internal static readonly Color Border = new Color(1f, 1f, 1f, 0.16f);
+        internal static readonly Color Muted = new Color(0.718f, 0.718f, 0.718f);
+        internal static readonly Color Bg = new Color(0.094f, 0.086f, 0.102f, 0.95f);
+        internal static readonly Color Border = new Color(0.718f, 0.718f, 0.718f);
+        internal static readonly Color ControlOutline = new Color(0.055f, 0.027f, 0.153f);
+        internal static readonly Color Secondary = new Color(0.412f, 0.412f, 0.412f);
 
-        internal const float BarSize = 8f, BarGap = 4f, MinThumb = 24f;
+        internal const float BarSize = 10f, BarGap = 4f, MinThumb = 24f;
 
-        static Texture2D _white, _line;
+        static Texture2D _white;
         static GUIStyle _btnLabel;
 
         static Texture2D White => _white != null ? _white : (_white = Solid(Color.white));
-        static Texture2D Line => _line != null ? _line : (_line = Solid(new Color(1f, 1f, 1f, 0.15f)));
-
         static Texture2D Solid(Color c)
         {
             var t = new Texture2D(1, 1) { hideFlags = HideFlags.HideAndDontSave };
             t.SetPixel(0, 0, c);
             t.Apply();
             return t;
+        }
+
+        // The game uses a linear colour space and IMGUI text comes out darker/more saturated than the hex value.
+        // Pre-applying the inverse conversion makes text match the colour picked in Figma.
+        internal static Color TextColor(Color c)
+        {
+            if (Plugin.LinearTextFix == null || !Plugin.LinearTextFix.Value || QualitySettings.activeColorSpace != ColorSpace.Linear) return c;
+            var g = c.gamma;
+            return new Color(g.r, g.g, g.b, c.a);
         }
 
         internal static void Round(Rect r, Color c, float radius) => Round(r, c, new Vector4(radius, radius, radius, radius));
@@ -42,11 +51,33 @@ namespace DPSMeter
             GUI.DrawTexture(r, White, ScaleMode.StretchToFill, true, 0f, c, Vector4.zero, radii);
         }
 
+        internal static void Outline(Rect r, Color c, float width = 1f)
+        {
+            Round(new Rect(r.x, r.y, r.width, width), c, 0f);
+            Round(new Rect(r.x, r.yMax - width, r.width, width), c, 0f);
+            Round(new Rect(r.x, r.y + width, width, r.height - width * 2f), c, 0f);
+            Round(new Rect(r.xMax - width, r.y + width, width, r.height - width * 2f), c, 0f);
+        }
+
+        internal static void Frame(Rect r, float radius = 20f, float borderWidth = 1f)
+        {
+            if (Event.current.type != EventType.Repaint) return;
+            Round(r, Border, radius);
+            var inner = new Rect(r.x + borderWidth, r.y + borderWidth, r.width - borderWidth * 2f, r.height - borderWidth * 2f);
+            if (inner.width > 0f && inner.height > 0f) Round(inner, Bg, Mathf.Max(0f, radius - borderWidth));
+        }
+
+        internal enum ButtonKind
+        {
+            Primary,
+            Secondary
+        }
+
         internal static void Divider()
         {
             GUILayout.Space(3);
             Rect r = GUILayoutUtility.GetRect(1, 1, GUIStyle.none, GUILayout.ExpandWidth(true));
-            if (Event.current.type == EventType.Repaint) GUI.DrawTexture(r, Line);
+            if (Event.current.type == EventType.Repaint) Round(r, Border, 0f);
             GUILayout.Space(3);
         }
 
@@ -64,23 +95,60 @@ namespace DPSMeter
             }
         }
 
-        // Draws a rounded button into r; returns true when clicked
-        internal static bool ButtonAt(Rect r, string text, bool accent = false, bool flat = false, int fontSize = 12)
+        internal static bool FigmaButtonAt(Rect r, string text, ButtonKind kind, int fontSize = 20)
         {
             bool hover = r.Contains(Event.current.mousePosition);
             bool down = hover && Input.GetMouseButton(0);
             bool clicked = GUI.Button(r, GUIContent.none, GUIStyle.none);
             if (Event.current.type == EventType.Repaint)
             {
-                Color c = accent ? Accent : Color.white;
-                float a = accent ? (down ? 0.65f : hover ? 0.5f : 0.3f) : (down ? 0.24f : hover ? 0.16f : flat ? 0f : 0.08f);
-                if (a > 0) Round(r, new Color(c.r, c.g, c.b, a), 5f);
-                var st = BtnLabel;
-                st.fontSize = fontSize;
-                st.normal.textColor = hover ? Color.white : Text;
-                GUI.Label(r, text, st);
+                Color fill = kind == ButtonKind.Primary ? Accent : Secondary;
+                if (down) fill = Color.Lerp(fill, ControlOutline, 0.2f);
+                else if (hover) fill = Color.Lerp(fill, Color.white, 0.12f);
+                Round(r, ControlOutline, 10f);
+                Round(new Rect(r.x + 1f, r.y + 1f, r.width - 2f, r.height - 2f), fill, 9f);
+                var style = BtnLabel;
+                style.fontSize = fontSize;
+                style.fontStyle = FontStyle.Normal;
+                style.normal.textColor = TextColor(ControlOutline);
+                GUI.Label(r, text, style);
             }
             return clicked;
+        }
+
+        internal static void ProgressBarAt(Rect r, float value, Color fill)
+        {
+            if (Event.current.type != EventType.Repaint) return;
+            Round(r, ControlOutline, 10f);
+            var track = new Rect(r.x + 2f, r.y + 2f, r.width - 4f, r.height - 4f);
+            Round(track, Secondary, 8f);
+            float fillWidth = track.width * Mathf.Clamp01(value);
+            if (fillWidth > 0f)
+                Round(new Rect(track.x, track.y, fillWidth, track.height), fill, Mathf.Min(8f, fillWidth * 0.5f));
+        }
+
+        internal static void SegmentedProgressBarAt(Rect r, float value, double[] segments, Color[] colors)
+        {
+            if (Event.current.type != EventType.Repaint) return;
+            Round(r, ControlOutline, 10f);
+            var track = new Rect(r.x + 2f, r.y + 2f, r.width - 4f, r.height - 4f);
+            Round(track, Secondary, 8f);
+
+            double total = 0;
+            for (int i = 0; i < segments.Length; i++) total += Mathf.Max(0f, (float)segments[i]);
+            float width = track.width * Mathf.Clamp01(value);
+            if (total <= 0 || width <= 0f) return;
+
+            float x = track.x;
+            for (int i = 0; i < segments.Length && i < colors.Length; i++)
+            {
+                if (segments[i] <= 0) continue;
+                float segmentWidth = width * (float)(segments[i] / total);
+                if (segmentWidth <= 0f) continue;
+                float radius = Mathf.Min(8f, segmentWidth * 0.5f);
+                Round(new Rect(x, track.y, segmentWidth, track.height), colors[i], radius);
+                x += segmentWidth;
+            }
         }
 
         // width 0 = auto-expand to fit the layout row
@@ -89,14 +157,13 @@ namespace DPSMeter
             Rect r = width > 0
                 ? GUILayoutUtility.GetRect(width, 22, GUIStyle.none, GUILayout.Width(width))
                 : GUILayoutUtility.GetRect(1, 22, GUIStyle.none, GUILayout.ExpandWidth(true));
-            return ButtonAt(r, text, accent);
+            return FigmaButtonAt(r, text, accent ? ButtonKind.Primary : ButtonKind.Secondary, 12);
         }
 
-        // Small borderless square button (fold arrows etc.)
         internal static bool IconButton(string glyph, float size = 16f)
         {
             Rect r = GUILayoutUtility.GetRect(size, size, GUIStyle.none, GUILayout.Width(size), GUILayout.Height(size));
-            return ButtonAt(r, glyph, flat: true, fontSize: 10);
+            return FigmaButtonAt(r, glyph, ButtonKind.Secondary, 10);
         }
 
         // ---- Scroll view ----
@@ -198,8 +265,9 @@ namespace DPSMeter
                     break;
                 case EventType.Repaint:
                     bool hover = thumb.Contains(e.mousePosition);
-                    Round(track, new Color(1f, 1f, 1f, 0.05f), BarSize * 0.5f);
-                    Color c = dragging ? new Color(Accent.r, Accent.g, Accent.b, 0.9f) : new Color(1f, 1f, 1f, hover ? 0.45f : 0.28f);
+                    Round(track, ControlOutline, BarSize * 0.5f);
+                    Round(new Rect(track.x + 1f, track.y + 1f, track.width - 2f, track.height - 2f), Secondary, (BarSize - 2f) * 0.5f);
+                    Color c = dragging || hover ? Accent : Border;
                     Round(thumb, c, BarSize * 0.5f);
                     break;
             }
