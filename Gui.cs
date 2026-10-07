@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Reflection;
 using UnityEngine;
 
 namespace DPSMeter
@@ -20,6 +22,7 @@ namespace DPSMeter
 
         internal const float BarSize = 10f, BarGap = 4f, MinThumb = 24f;
 
+        static readonly Dictionary<string, Texture2D> _icons = new Dictionary<string, Texture2D>();
         static Texture2D _white;
         static GUIStyle _btnLabel;
 
@@ -40,6 +43,30 @@ namespace DPSMeter
             var g = c.gamma;
             return new Color(g.r, g.g, g.b, c.a);
         }
+
+        // Loads Textures/<fileName> (embedded in the dll) once; returns null if it is missing or invalid.
+        internal static Texture2D Icon(string fileName)
+        {
+            if (_icons.TryGetValue(fileName, out var cached) && cached != null) return cached;
+
+            Texture2D tex = null;
+            using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Textures." + fileName))
+            {
+                if (stream == null) Plugin.Logger.LogWarning($"Icon not found: {fileName}");
+                else
+                {
+                    var data = new byte[stream.Length];
+                    int read = 0;
+                    while (read < data.Length) read += stream.Read(data, read, data.Length - read);
+                    tex = new Texture2D(2, 2, TextureFormat.RGBA32, false) { hideFlags = HideFlags.HideAndDontSave, filterMode = FilterMode.Bilinear };
+                    if (!tex.LoadImage(data)) { Plugin.Logger.LogWarning($"Icon is not a valid image: {fileName}"); tex = null; }
+                }
+            }
+            return _icons[fileName] = tex;
+        }
+
+        // Wraps text in a colour tag (for FigmaText with RichText = true), with the same linear fix as plain text.
+        internal static string Colored(string text, Color c) => $"<color=#{ColorUtility.ToHtmlStringRGB(TextColor(c))}>{text}</color>";
 
         internal static void Round(Rect r, Color c, float radius) => Round(r, c, new Vector4(radius, radius, radius, radius));
 
@@ -70,7 +97,8 @@ namespace DPSMeter
         internal enum ButtonKind
         {
             Primary,
-            Secondary
+            Secondary,
+            None            // no background or outline: just the icon / text
         }
 
         internal static void Divider()
@@ -95,7 +123,9 @@ namespace DPSMeter
             }
         }
 
-        internal static bool FigmaButtonAt(Rect r, string text, ButtonKind kind, int fontSize = 20)
+        internal const float IconGap = 6f;
+
+        internal static bool FigmaButtonAt(Rect r, string text, ButtonKind kind, int fontSize = 20, Texture2D icon = null, float iconSize = 0f, Color? iconTint = null)
         {
             bool hover = r.Contains(Event.current.mousePosition);
             bool down = hover && Input.GetMouseButton(0);
@@ -105,13 +135,41 @@ namespace DPSMeter
                 Color fill = kind == ButtonKind.Primary ? Accent : Secondary;
                 if (down) fill = Color.Lerp(fill, ControlOutline, 0.2f);
                 else if (hover) fill = Color.Lerp(fill, Color.white, 0.12f);
-                Round(r, ControlOutline, 10f);
-                Round(new Rect(r.x + 1f, r.y + 1f, r.width - 2f, r.height - 2f), fill, 9f);
+                bool plain = kind == ButtonKind.None;
+                if (!plain)
+                {
+                    Round(r, ControlOutline, 10f);
+                    Round(new Rect(r.x + 1f, r.y + 1f, r.width - 2f, r.height - 2f), fill, 9f);
+                }
                 var style = BtnLabel;
                 style.fontSize = fontSize;
                 style.fontStyle = FontStyle.Normal;
-                style.normal.textColor = TextColor(ControlOutline);
-                GUI.Label(r, text, style);
+                style.normal.textColor = TextColor(plain ? Text : ControlOutline);
+
+                // Without a background, hover/press feedback is a brighten/dim of the icon and text.
+                if (plain)
+                {
+                    float shade = down ? 0.7f : hover ? 1f : 0.85f;
+                    iconTint = (iconTint ?? Color.white) * new Color(shade, shade, shade, 1f);
+                    style.normal.textColor *= new Color(shade, shade, shade, 1f);
+                }
+
+                bool hasText = !string.IsNullOrEmpty(text);
+                bool hasIcon = icon != null && iconSize > 0f;
+                if (!hasIcon)
+                {
+                    if (hasText) GUI.Label(r, text, style);
+                }
+                else
+                {
+                    // Icon and text are centred together as one group, icon first.
+                    float textW = hasText ? style.CalcSize(new GUIContent(text)).x : 0f;
+                    float total = iconSize + (hasText ? IconGap + textW : 0f);
+                    float x = r.x + (r.width - total) * 0.5f;
+                    var iconRect = new Rect(x, r.y + (r.height - iconSize) * 0.5f, iconSize, iconSize);
+                    GUI.DrawTexture(iconRect, icon, ScaleMode.ScaleToFit, true, 0f, iconTint ?? Color.white, 0f, 0f);
+                    if (hasText) GUI.Label(new Rect(x + iconSize + IconGap, r.y, textW, r.height), text, style);
+                }
             }
             return clicked;
         }
