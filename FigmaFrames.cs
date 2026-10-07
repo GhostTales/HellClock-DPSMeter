@@ -47,6 +47,8 @@ namespace DPSMeter
         internal Rect Bounds;
         internal Color? Fill;
         internal Color? Border;
+        // Per-side colour overrides; a side left null uses Border.
+        internal Color? BorderLeft, BorderTop, BorderRight, BorderBottom;
         internal Vector4 BorderWidths;       // left, top, right, bottom
         internal Vector4 CornerRadii;        // top-left, top-right, bottom-right, bottom-left
 
@@ -334,21 +336,37 @@ namespace DPSMeter
         {
             if (Wireframe || Event.current.type != EventType.Repaint) return;
             bool rounded = CornerRadii != Vector4.zero;
-            if (Border.HasValue && !Fill.HasValue && !rounded)
+            var left = BorderLeft ?? Border;
+            var top = BorderTop ?? Border;
+            var right = BorderRight ?? Border;
+            var bottom = BorderBottom ?? Border;
+            var baseColor = Border ?? left ?? top ?? right ?? bottom;
+            bool hasBorder = baseColor.HasValue;
+            var b = BorderWidths;
+
+            if (hasBorder && !Fill.HasValue && !rounded)
             {
-                // No fill to punch a hole into, so draw only the sides that have a width.
-                var b = BorderWidths;
-                Gui.Round(new Rect(rect.x, rect.y, rect.width, b.y), Border.Value, 0f);
-                Gui.Round(new Rect(rect.x, rect.yMax - b.w, rect.width, b.w), Border.Value, 0f);
-                Gui.Round(new Rect(rect.x, rect.y + b.y, b.x, rect.height - b.y - b.w), Border.Value, 0f);
-                Gui.Round(new Rect(rect.xMax - b.z, rect.y + b.y, b.z, rect.height - b.y - b.w), Border.Value, 0f);
+                // No fill to punch a hole into, so draw only the sides that have a colour and a width.
+                if (top.HasValue) Gui.Round(new Rect(rect.x, rect.y, rect.width, b.y), top.Value, 0f);
+                if (bottom.HasValue) Gui.Round(new Rect(rect.x, rect.yMax - b.w, rect.width, b.w), bottom.Value, 0f);
+                if (left.HasValue) Gui.Round(new Rect(rect.x, rect.y + b.y, b.x, rect.height - b.y - b.w), left.Value, 0f);
+                if (right.HasValue) Gui.Round(new Rect(rect.xMax - b.z, rect.y + b.y, b.z, rect.height - b.y - b.w), right.Value, 0f);
                 return;
             }
 
-            if (Border.HasValue) Gui.Round(rect, Border.Value, CornerRadii);
+            if (hasBorder)
+            {
+                Gui.Round(rect, baseColor.Value, CornerRadii);
+                // Sides with their own colour are painted over the base, stopping short of the rounded corners.
+                var r = CornerRadii;
+                if (BorderTop.HasValue) Gui.Round(new Rect(rect.x + r.x, rect.y, rect.width - r.x - r.y, b.y), BorderTop.Value, 0f);
+                if (BorderBottom.HasValue) Gui.Round(new Rect(rect.x + r.w, rect.yMax - b.w, rect.width - r.w - r.z, b.w), BorderBottom.Value, 0f);
+                if (BorderLeft.HasValue) Gui.Round(new Rect(rect.x, rect.y + r.x, b.x, rect.height - r.x - r.w), BorderLeft.Value, 0f);
+                if (BorderRight.HasValue) Gui.Round(new Rect(rect.xMax - b.z, rect.y + r.y, b.z, rect.height - r.y - r.z), BorderRight.Value, 0f);
+            }
             if (Fill.HasValue)
             {
-                var w = Border.HasValue ? BorderWidths : Vector4.zero;
+                var w = hasBorder ? BorderWidths : Vector4.zero;
                 var fillRect = new Rect(rect.x + w.x, rect.y + w.y, rect.width - w.x - w.z, rect.height - w.y - w.w);
                 if (fillRect.width > 0f && fillRect.height > 0f)
                 {
@@ -375,6 +393,8 @@ namespace DPSMeter
         internal TextAnchor Align { get => _style.alignment; set => _style.alignment = value; }
         internal FontStyle FontStyle { get => _style.fontStyle; set => _style.fontStyle = value; }
         internal bool WordWrap { get => _style.wordWrap; set => _style.wordWrap = value; }
+        // Enables <b>, <i> and Gui.Colored(...) spans inside Text.
+        internal bool RichText { get => _style.richText; set => _style.richText = value; }
 
         // Owns a private copy of the style, so changing FontSize/Color/Align never affects other texts.
         internal FigmaText(Rect bounds, string text, GUIStyle style) : base(bounds)
@@ -405,6 +425,17 @@ namespace DPSMeter
         internal Gui.ButtonKind Kind;
         internal int FontSize;
         internal Action Clicked;
+        internal Texture2D Icon;             // optional; drawn before the text, or alone when Text is empty
+        internal float IconSize = 20f;
+        internal Color? IconTint;            // null = draw the PNG as is
+
+        // Icon-only button, e.g. new FigmaButton(default, Gui.Icon("ConfigGear.png"), Gui.ButtonKind.Secondary, 20, OnClick).
+        internal FigmaButton(Rect bounds, Texture2D icon, Gui.ButtonKind kind, float iconSize, Action clicked)
+            : this(bounds, "", kind, 14, clicked)
+        {
+            Icon = icon;
+            IconSize = iconSize;
+        }
 
         internal FigmaButton(Rect bounds, string text, Gui.ButtonKind kind, int fontSize, Action clicked) : base(bounds)
         {
@@ -416,13 +447,18 @@ namespace DPSMeter
 
         protected override Vector2 Measure()
         {
-            var size = new GUIStyle(GUI.skin.label) { fontSize = FontSize }.CalcSize(new GUIContent(Text));
-            return new Vector2(size.x + 24f, size.y + 8f);
+            bool hasText = !string.IsNullOrEmpty(Text);
+            bool hasIcon = Icon != null;
+            float padX = Kind == Gui.ButtonKind.None ? 0f : 24f, padY = Kind == Gui.ButtonKind.None ? 0f : 8f;
+            var size = hasText ? new GUIStyle(GUI.skin.label) { fontSize = FontSize }.CalcSize(new GUIContent(Text)) : Vector2.zero;
+            if (!hasIcon) return new Vector2(size.x + padX, size.y + padY);
+            if (!hasText) return new Vector2(IconSize + padX * 2f / 3f, IconSize + padY);
+            return new Vector2(IconSize + Gui.IconGap + size.x + padX, Mathf.Max(IconSize, size.y) + padY);
         }
 
         protected override void Draw(Rect rect)
         {
-            if (Gui.FigmaButtonAt(rect, Text, Kind, FontSize)) Clicked?.Invoke();
+            if (Gui.FigmaButtonAt(rect, Text, Kind, FontSize, Icon, IconSize, IconTint)) Clicked?.Invoke();
         }
     }
 
