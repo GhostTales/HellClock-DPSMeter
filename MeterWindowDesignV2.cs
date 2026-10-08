@@ -13,11 +13,11 @@ namespace DPSMeter
         readonly FigmaWindow _window;
         FigmaFrame root;
 
-        readonly Color Accent = new Color(0x15 / 255f, 0x14 / 255f, 0x19 / 255f);
-        readonly Color Background = new Color(0x17 / 255f, 0x16 / 255f, 0x1D / 255f);
-        readonly Color Primary = new Color(0xF6 / 255f, 0x4C / 255f, 0x2C / 255f);
-        readonly Color Text = new Color(0xFF / 255f, 0xE9 / 255f, 0xE9 / 255f);
-        readonly Color Border = new Color(0x33 / 255f, 0x33 / 255f, 0x33 / 255f);
+        static readonly Color Accent = new Color(0x15 / 255f, 0x14 / 255f, 0x19 / 255f);
+        static readonly Color Background = new Color(0x17 / 255f, 0x16 / 255f, 0x1D / 255f);
+        static readonly Color Primary = new Color(0xF6 / 255f, 0x4C / 255f, 0x2C / 255f);
+        static readonly Color Text = new Color(0xFF / 255f, 0xE9 / 255f, 0xE9 / 255f);
+        static readonly Color Secondary = new Color(0x8B / 255f, 0x7F / 255f, 0x83 / 255f);
 
         public MeterWindowDesignV2(FigmaWindow window)
         {
@@ -53,31 +53,9 @@ namespace DPSMeter
                 Gap = 4f
             }.Size(FigmaSize.Hug, FigmaSize.Hug);
 
-            // Debug button toggles the wireframe mode on and off
-            var debugButton = new FigmaButton(default, FigmaFrame.Wireframe ? "Debug: On" : "Debug: Off",
-                FigmaFrame.Wireframe ? Gui.ButtonKind.Primary : Gui.ButtonKind.Secondary, 14, ToggleWireframe).Size(FigmaSize.Hug, FigmaSize.Hug);
-            buttonRow.Add(debugButton);
-
-            // Config gear button
-            var configButton = new FigmaButton(default, Gui.Icon("GearIcon.png"), Gui.ButtonKind.None, 14, OpenConfig)
-            {
-                IconSize = 24f,
-            }.Size(FigmaSize.Hug, FigmaSize.Hug);
-            buttonRow.Add(configButton);
-
-            // Minimize button
-            var minimizeButton = new FigmaButton(default, Gui.Icon("MinimizeIcon.png"), Gui.ButtonKind.None, 14, MinimizeWindow)
-            {
-                IconSize = 24f,
-            }.Size(FigmaSize.Hug, FigmaSize.Hug);
-            buttonRow.Add(minimizeButton);
-
-            // Close button
-            var closeButton = new FigmaButton(default, Gui.Icon("CloseIcon.png"), Gui.ButtonKind.None, 14, CloseWindow)
-            {
-                IconSize = 24f,
-            }.Size(FigmaSize.Hug, FigmaSize.Hug);
-            buttonRow.Add(closeButton);
+            buttonRow.Add(IconButton("GearIcon.png", 24f, OpenConfig));
+            buttonRow.Add(IconButton("MinimizeIcon.png", 24f, MinimizeWindow));
+            buttonRow.Add(IconButton("CloseIcon.png", 24f, CloseWindow));
 
             header.Add(buttonRow);
 
@@ -142,29 +120,27 @@ namespace DPSMeter
                 Gap = 10f,
             }.Size(FigmaSize.Hug, FigmaSize.Hug));
 
-            // counter inside the button container
+            // The whole frame is the reset button. It shows the elapsed time once a fight has started, otherwise a circular icon.
             var counterFrame = buttonContainer.Add(new FigmaFrame(default)
             {
                 Layout = FigmaLayout.Horizontal,
                 Fill = Background,
                 MainAlign = FigmaAlign.Center,
                 CrossAlign = FigmaAlign.Center,
-                Padding = new Vector4(0f, 0f, 0f, 0f),
                 Bounds = new Rect(0f, 0f, 46, 30f),
                 Border = Primary,
                 CornerRadius = 3f,
                 BorderWidth = 1f,
+                Clicked = Tracker.Reset,
+                HoverTint = Color.white,
+                PressedTint = Pressed,
             }.Size(FigmaSize.Fixed, FigmaSize.Fixed));
 
-            // Elapsed time once a fight has started, otherwise a circular icon.
-            bool fighting = Tracker.Elapsed > 0;
-            var counterButton = counterFrame.Add(new FigmaButton(default,
-                fighting ? Gui.Colored(TimeSpan.FromSeconds(Tracker.Elapsed).ToString("ss\\.f"), Primary) : "",
-                Gui.ButtonKind.None, 14, Tracker.Reset)
-            {
-                Icon = fighting ? null : Gui.Icon("Circle.png"),
-                IconSize = 14f
-            }.Size(FigmaSize.Fill, FigmaSize.Hug));
+            if (Tracker.Elapsed > 0)
+                counterFrame.Add(new FigmaText(default, TimeSpan.FromSeconds(Tracker.Elapsed).ToString("ss\\.f"), 14, Primary, TextAnchor.MiddleCenter)
+                    .Size(FigmaSize.Hug, FigmaSize.Hug));
+            else
+                counterFrame.Add(new FigmaImage(new Rect(0f, 0f, 14f, 14f), Gui.Icon("Circle.png")));
 
             // Right side of the main body frame
             var mainBodyRight = mainBody.Add(new FigmaFrame(default)
@@ -213,7 +189,7 @@ namespace DPSMeter
             var mainBodyBottom = root.Add(new FigmaFrame(default)
             {
                 Layout = FigmaLayout.Vertical,
-                Fill = Primary,
+                Fill = Background,
                 MainAlign = FigmaAlign.Center,
                 CrossAlign = FigmaAlign.Center,
                 Padding = new Vector4(10f, 10f, 10f, 10f),
@@ -227,54 +203,78 @@ namespace DPSMeter
                 Fill = Background,
                 MainAlign = FigmaAlign.Start,
                 CrossAlign = FigmaAlign.Start,
-                Padding = new Vector4(0f, 10f, 0f, 10f),
+                Padding = new Vector4(0f, 0f, 0f, 0f),
                 Gap = 10f,
                 Bounds = new Rect(0f, 0f, _window.Rect.width, 35f),
             }.Size(FigmaSize.Fill, FigmaSize.Fixed));
 
-            // skill breakdown tab button
-            var skillButton = mainBodyBottomButtonHeader.Add(new FigmaButton(default, "Skill",
-                SelectedBreakdownTab == "Skill" ? Gui.ButtonKind.Primary : Gui.ButtonKind.Secondary, 14,
-                () => SelectedBreakdownTab = "Skill")
-            {
-                Fill = null,
-                Bounds = new Rect(0f, 0f, _window.Rect.width, 30f),
-            }.Size(FigmaSize.Fill, FigmaSize.Fixed));
-
-
-            // damage type breakdown tab button
-            var damageTypeButton = mainBodyBottomButtonHeader.Add(new FigmaButton(default, "Damage Type",
-                SelectedBreakdownTab == "Damage Type" ? Gui.ButtonKind.Primary : Gui.ButtonKind.Secondary, 14,
-                () => SelectedBreakdownTab = "Damage Type")
-            {
-                Fill = null,
-                Bounds = new Rect(0f, 0f, _window.Rect.width, 30f),
-            }.Size(FigmaSize.Fill, FigmaSize.Fixed));
+            // breakdown tab buttons, the selected one is highlighted
+            mainBodyBottomButtonHeader.Add(Button("Skill", SelectedBreakdownTab == "Skill", 20, () => SelectedBreakdownTab = "Skill")
+                .Size(FigmaSize.Fill, FigmaSize.Fixed));
+            mainBodyBottomButtonHeader.Add(Button("Damage Type", SelectedBreakdownTab == "Damage Type", 20, () => SelectedBreakdownTab = "Damage Type")
+                .Size(FigmaSize.Fill, FigmaSize.Fixed));
 
             var mainBodyBottomContent = mainBodyBottom.Add(new FigmaFrame(default)
+            {
+                Layout = FigmaLayout.Horizontal,
+                Fill = Background,
+                MainAlign = FigmaAlign.Start,
+                CrossAlign = FigmaAlign.Start,
+                Padding = new Vector4(0f, 0f, 0f, 0f),
+                Gap = 10f,
+                Bounds = new Rect(0f, 0f, _window.Rect.width, 143f),
+            }.Size(FigmaSize.Fill, FigmaSize.Hug));
+
+            var mainBodyBottomBars = mainBodyBottomContent.Add(new FigmaFrame(default)
             {
                 Layout = FigmaLayout.Vertical,
                 Fill = Background,
                 MainAlign = FigmaAlign.Start,
                 CrossAlign = FigmaAlign.Start,
-                Padding = new Vector4(10f, 10f, 10f, 10f),
-                Gap = 4f,
-                Bounds = new Rect(0f, 0f, _window.Rect.width, 188f),
+                Padding = new Vector4(0f, 0f, 0f, 0f),
+                Gap = 10f,
+                Bounds = new Rect(0f, 0f, _window.Rect.width, 208f),
             }.Size(FigmaSize.Fill, FigmaSize.Hug));
 
+            var mainBodyBottomBarsInfo = mainBodyBottomContent.Add(new FigmaFrame(default)
+            {
+                Layout = FigmaLayout.Vertical,
+                Fill = Background,
+                MainAlign = FigmaAlign.Start,
+                CrossAlign = FigmaAlign.Start,
+                Padding = new Vector4(0f, 0f, 0f, 0f),
+                Gap = 0f,
+                Bounds = new Rect(0f, 0f, 130, _window.Rect.height),
+            }.Size(FigmaSize.Hug, FigmaSize.Fill));
 
+            var mainBodyBottomBarsInfoHeader = mainBodyBottomBarsInfo.Add(new FigmaFrame(default)
+            {
+                Layout = FigmaLayout.Horizontal,
+                Fill = Background,
+                MainAlign = FigmaAlign.End,
+                CrossAlign = FigmaAlign.Center,
+                Padding = new Vector4(0f, 0f, 0f, 0f),
+                Gap = 10f,
+                Bounds = new Rect(0f, 0f, 130f, 14f),
+            }.Size(FigmaSize.Fill, FigmaSize.Hug));
 
-
-            // fix ai shit code below
-
-
+            var mainBodyBottomBarsInfoData = mainBodyBottomBarsInfo.Add(new FigmaFrame(default)
+            {
+                Layout = FigmaLayout.Horizontal,
+                Fill = Background,
+                MainAlign = FigmaAlign.End,
+                CrossAlign = FigmaAlign.Center,
+                Padding = new Vector4(0f, 0f, 0f, 0f),
+                Gap = 25f,
+                Bounds = new Rect(0f, 0f, 130f, 123f),
+            }.Size(FigmaSize.Fixed, FigmaSize.Hug));
 
             if (SelectedBreakdownTab == "Skill")
             {
                 var skills = Tracker.Skills.OrderByDescending(skill => skill.Value.Total).Take(4).ToList();
                 if (skills.Count == 0)
                 {
-                    mainBodyBottomContent.Add(new FigmaText(default, "No skill damage recorded", 14, Text)
+                    mainBodyBottomBars.Add(new FigmaText(default, "No skill damage recorded", 14, Text)
                         .Size(FigmaSize.Hug, FigmaSize.Hug));
                 }
                 else
@@ -285,12 +285,58 @@ namespace DPSMeter
             else
             {
                 // add info abrs for damage types. only display types with non-zero totals
-            }
+                if (Tracker.TypeTotals.Max() != 0)
+                {
+                    // add info bars for each damage type with non-zero totals
+                    double sum = Tracker.TypeTotals.Sum();
 
+                    mainBodyBottomBarsInfoHeader.Add(new FigmaText(default, "Sum", 14, Text).Size(FigmaSize.Hug, FigmaSize.Hug));
+                    mainBodyBottomBarsInfoHeader.Add(new FigmaText(default, "Distribution", 14, Text).Size(FigmaSize.Hug, FigmaSize.Hug));
+
+                    // sort so that damage types with higher totals appear first
+                    var sortedIndices = Enumerable.Range(0, Tracker.TypeCount)
+                        .OrderByDescending(i => Tracker.TypeTotals[i])
+                        .ToList();
+
+                    for (int idx = 0; idx < sortedIndices.Count; idx++)
+                    {
+                        int i = sortedIndices[idx];
+                        double amount = Tracker.TypeTotals[i];
+                        if (amount <= 0) continue;
+
+                        // One segment filling the whole bar means no segmentation
+                        mainBodyBottomBars.Add(ProgressBar((float)(amount / sum), new[] { 1.0 }, new[] { Tracker.TypeColors[i] } , Tracker.TypeNames[i]));
+
+
+                        var barsInfoData = mainBodyBottomBarsInfoData.Add(new FigmaFrame(default) 
+                        {
+                            Layout = FigmaLayout.Vertical,
+                            Fill = Background,
+                            MainAlign = FigmaAlign.End,
+                            CrossAlign = FigmaAlign.Center,
+                            Bounds = new Rect(0f, 0f, 130f, 12f),
+                            Gap = 10f,
+                            Padding = new Vector4(5f, 0f, 0f, 0f),
+                        }.Size(FigmaSize.Fill, FigmaSize.Hug));
+
+
+                        barsInfoData.Add(new FigmaText(default, Fmt(amount), 12, Primary){ 
+                            Bounds = new Rect(0f, 0f, 45f, 12f), 
+                            Align = TextAnchor.MiddleRight 
+                        }.Size(FigmaSize.Fixed, FigmaSize.Hug));
+                        
+                        barsInfoData.Add(new FigmaText(default, (amount / sum).ToString("P1"), 12, Primary){ 
+                            Bounds = new Rect(0f, 0f, 70f, 12f), 
+                            Align = TextAnchor.MiddleRight 
+                        }.Size(FigmaSize.Fixed, FigmaSize.Hug));
+                    }
+                }
+            }  
         }
 
         static void OpenConfig()
         {
+            ToggleWireframe();
             // Implement the logic to open the configuration window here
         }
 
@@ -315,11 +361,129 @@ namespace DPSMeter
             // Implement the logic to close the window here
         }
 
-        static void CreateProgressBar(float value, Color color, double[]segments)
+        // ---- Widgets: plain frames with a click handler and per-state colours ----
+
+        static readonly Color Dimmed = new Color(0.85f, 0.85f, 0.85f, 1f);
+        static readonly Color Pressed = new Color(0.7f, 0.7f, 0.7f, 1f);
+
+        // Framed button with a text label. Selected buttons use the primary colour.
+        static FigmaFrame Button(string text, bool selected, int fontSize, Action clicked)
         {
-            // Create and return a new FigmaProgressBar with the specified value and color
+            var border = selected ? Primary : Secondary;
+            var button = new FigmaFrame(new Rect(0f, 0f, 0f, 30f))
+            {
+                Layout = FigmaLayout.Vertical,
+                MainAlign = FigmaAlign.Center,
+                CrossAlign = FigmaAlign.Center,
+                Padding = new Vector4(0f, 0f, 0f, 0f),
+                Border = border,
+                BorderWidth = 1f,
+                CornerRadius = 2f,
+                Gap = 20f,
+                Fill = Background,
+                Clicked = clicked,
+            }.Size(FigmaSize.Hug, FigmaSize.Hug);
+            button.Add(new FigmaText(default, text, fontSize, border, TextAnchor.MiddleCenter).Size(FigmaSize.Hug, FigmaSize.Hug));
+            return button;
         }
-        
+
+        // Borderless button that only shows an icon, dimmed until hovered.
+        static FigmaFrame IconButton(string icon, float size, Action clicked)
+        {
+            var button = new FigmaFrame(default)
+            {
+                Layout = FigmaLayout.Horizontal,
+                MainAlign = FigmaAlign.Center,
+                CrossAlign = FigmaAlign.Center,
+                Clicked = clicked,
+                Tint = Dimmed,
+                HoverTint = Color.white,
+                PressedTint = Pressed,
+            }.Size(FigmaSize.Hug, FigmaSize.Hug);
+            button.Add(new FigmaImage(new Rect(0f, 0f, size, size), Gui.Icon(icon)));
+            return button;
+        }
+
+        // Progress bar built from frames: outline > track > one frame per segment, sized by FillWeight.
+        // value is the filled fraction of the track; segments are split proportionally over the filled part.
+        static FigmaFrame ProgressBar(float value, double[] segments, Color[] colors, string label = null, Action clicked = null, Action hovered = null)
+        {
+            // main container for the progress bar and its label
+            var frame = new FigmaFrame(default)
+            {
+                Layout = FigmaLayout.Vertical,
+                Gap = 2f,
+                Bounds = new Rect(0f, 0f, 0f, 32f),
+                MainAlign = FigmaAlign.Start,
+                CrossAlign = FigmaAlign.Start,
+            }.Size(FigmaSize.Fill, FigmaSize.Hug);
+            
+            // label for the progress bar, if provided
+            if (!string.IsNullOrEmpty(label))
+                frame.Add(new FigmaText(default, label, 14, Text, TextAnchor.MiddleLeft).Size(FigmaSize.Hug, FigmaSize.Hug));
+
+            // container for the progress bar
+            var barContainer = frame.Add(new FigmaFrame(default)
+            {
+                Layout = FigmaLayout.Horizontal,
+                MainAlign = FigmaAlign.Start,
+                CrossAlign = FigmaAlign.Center,
+                Bounds = new Rect(0f, 0f, 0f, 12f),
+            }.Size(FigmaSize.Fill, FigmaSize.Fixed));
+
+            // outer bar (the outline of the progress bar)
+            var bar = barContainer.Add(new FigmaFrame(new Rect(0f, 0f, 0f, 20f))
+            {
+                Layout = FigmaLayout.Horizontal,
+                Padding = new Vector4(2f, 2f, 2f, 2f),
+                Fill = Background,
+                CornerRadius = 10f,
+                Clicked = clicked,
+                Hovered = hovered,
+                Bounds = new Rect(0f, 0f, 0f, 12f),
+                Border = Secondary,
+                BorderWidth = 1f,
+            }.Size(FigmaSize.Fill, FigmaSize.Fixed));
+
+            // track: the empty background. It lays its children (the segments) out side by side, sharing its width by FillWeight
+            var track = bar.Add(new FigmaFrame(default)
+            {
+                Layout = FigmaLayout.Horizontal,
+                Fill = Background,
+                CornerRadius = 10f,
+                Border = Color.black,
+                BorderWidth = 1f,
+                Padding = new Vector4(1f, 1f, 1f, 1f), // keeps the segments inside the border
+            }.Size(FigmaSize.Fill, FigmaSize.Fill));
+
+            double total = 0;
+            for (int i = 0; i < segments.Length && i < colors.Length; i++) total += Math.Max(0.0, segments[i]);
+            float filled = total > 0 ? Mathf.Clamp01(value) : 0f;
+
+            // Only the outer ends of the filled part are rounded, so segments butt up against each other.
+            int first = -1, last = -1;
+            for (int i = 0; i < segments.Length && i < colors.Length; i++)
+            {
+                if (segments[i] <= 0) continue;
+                if (first < 0) first = i;
+                last = i;
+            }
+            for (int i = first; first >= 0 && i <= last; i++)
+            {
+                if (segments[i] <= 0) continue;
+                float left = i == first ? 8f : 0f, right = i == last ? 8f : 0f;
+                track.Add(new FigmaFrame(default)
+                {
+                    Fill = colors[i],
+                    CornerRadii = new Vector4(left, right, right, left),
+                    FillWeight = filled * (float)(segments[i] / total),
+                }.Size(FigmaSize.Fill, FigmaSize.Fill));
+            }
+
+            // Unfilled remainder of the track.
+            track.Add(new FigmaFrame(default) { FillWeight = 1f - filled }.Size(FigmaSize.Fill, FigmaSize.Fill));
+            return frame;
+        }
 
         static string Fmt(double v)
         {
