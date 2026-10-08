@@ -24,7 +24,6 @@ namespace DPSMeter
 
         static readonly Dictionary<string, Texture2D> _icons = new Dictionary<string, Texture2D>();
         static Texture2D _white;
-        static GUIStyle _btnLabel;
 
         static Texture2D White => _white != null ? _white : (_white = Solid(Color.white));
         static Texture2D Solid(Color c)
@@ -94,134 +93,12 @@ namespace DPSMeter
             if (inner.width > 0f && inner.height > 0f) Round(inner, Bg, Mathf.Max(0f, radius - borderWidth));
         }
 
-        internal enum ButtonKind
-        {
-            Primary,
-            Secondary,
-            None            // no background or outline: just the icon / text
-        }
-
         internal static void Divider()
         {
             GUILayout.Space(3);
             Rect r = GUILayoutUtility.GetRect(1, 1, GUIStyle.none, GUILayout.ExpandWidth(true));
             if (Event.current.type == EventType.Repaint) Round(r, Border, 0f);
             GUILayout.Space(3);
-        }
-
-        // ---- Buttons ----
-
-        static GUIStyle BtnLabel
-        {
-            get
-            {
-                if (_btnLabel == null)
-                {
-                    _btnLabel = new GUIStyle(GUI.skin.label) { fontSize = 12, richText = true, alignment = TextAnchor.MiddleCenter, wordWrap = false };
-                }
-                return _btnLabel;
-            }
-        }
-
-        internal const float IconGap = 6f;
-
-        internal static bool FigmaButtonAt(Rect r, string text, ButtonKind kind, int fontSize = 20, Texture2D icon = null, float iconSize = 0f, Color? iconTint = null)
-        {
-            bool hover = r.Contains(Event.current.mousePosition);
-            bool down = hover && Input.GetMouseButton(0);
-            bool clicked = GUI.Button(r, GUIContent.none, GUIStyle.none);
-            if (Event.current.type == EventType.Repaint)
-            {
-                Color fill = kind == ButtonKind.Primary ? Accent : Secondary;
-                if (down) fill = Color.Lerp(fill, ControlOutline, 0.2f);
-                else if (hover) fill = Color.Lerp(fill, Color.white, 0.12f);
-                bool plain = kind == ButtonKind.None;
-                if (!plain)
-                {
-                    Round(r, ControlOutline, 10f);
-                    Round(new Rect(r.x + 1f, r.y + 1f, r.width - 2f, r.height - 2f), fill, 9f);
-                }
-                var style = BtnLabel;
-                style.fontSize = fontSize;
-                style.fontStyle = FontStyle.Normal;
-                style.normal.textColor = TextColor(plain ? Text : ControlOutline);
-
-                // Without a background, hover/press feedback is a brighten/dim of the icon and text.
-                if (plain)
-                {
-                    float shade = down ? 0.7f : hover ? 1f : 0.85f;
-                    iconTint = (iconTint ?? Color.white) * new Color(shade, shade, shade, 1f);
-                    style.normal.textColor *= new Color(shade, shade, shade, 1f);
-                }
-
-                bool hasText = !string.IsNullOrEmpty(text);
-                bool hasIcon = icon != null && iconSize > 0f;
-                if (!hasIcon)
-                {
-                    if (hasText) GUI.Label(r, text, style);
-                }
-                else
-                {
-                    // Icon and text are centred together as one group, icon first.
-                    float textW = hasText ? style.CalcSize(new GUIContent(text)).x : 0f;
-                    float total = iconSize + (hasText ? IconGap + textW : 0f);
-                    float x = r.x + (r.width - total) * 0.5f;
-                    var iconRect = new Rect(x, r.y + (r.height - iconSize) * 0.5f, iconSize, iconSize);
-                    GUI.DrawTexture(iconRect, icon, ScaleMode.ScaleToFit, true, 0f, iconTint ?? Color.white, 0f, 0f);
-                    if (hasText) GUI.Label(new Rect(x + iconSize + IconGap, r.y, textW, r.height), text, style);
-                }
-            }
-            return clicked;
-        }
-
-        internal static void ProgressBarAt(Rect r, float value, Color fill)
-        {
-            if (Event.current.type != EventType.Repaint) return;
-            Round(r, ControlOutline, 10f);
-            var track = new Rect(r.x + 2f, r.y + 2f, r.width - 4f, r.height - 4f);
-            Round(track, Secondary, 8f);
-            float fillWidth = track.width * Mathf.Clamp01(value);
-            if (fillWidth > 0f)
-                Round(new Rect(track.x, track.y, fillWidth, track.height), fill, Mathf.Min(8f, fillWidth * 0.5f));
-        }
-
-        internal static void SegmentedProgressBarAt(Rect r, float value, double[] segments, Color[] colors)
-        {
-            if (Event.current.type != EventType.Repaint) return;
-            Round(r, ControlOutline, 10f);
-            var track = new Rect(r.x + 2f, r.y + 2f, r.width - 4f, r.height - 4f);
-            Round(track, Secondary, 8f);
-
-            double total = 0;
-            for (int i = 0; i < segments.Length; i++) total += Mathf.Max(0f, (float)segments[i]);
-            float width = track.width * Mathf.Clamp01(value);
-            if (total <= 0 || width <= 0f) return;
-
-            float x = track.x;
-            for (int i = 0; i < segments.Length && i < colors.Length; i++)
-            {
-                if (segments[i] <= 0) continue;
-                float segmentWidth = width * (float)(segments[i] / total);
-                if (segmentWidth <= 0f) continue;
-                float radius = Mathf.Min(8f, segmentWidth * 0.5f);
-                Round(new Rect(x, track.y, segmentWidth, track.height), colors[i], radius);
-                x += segmentWidth;
-            }
-        }
-
-        // width 0 = auto-expand to fit the layout row
-        internal static bool Button(string text, float width = 0, bool accent = false)
-        {
-            Rect r = width > 0
-                ? GUILayoutUtility.GetRect(width, 22, GUIStyle.none, GUILayout.Width(width))
-                : GUILayoutUtility.GetRect(1, 22, GUIStyle.none, GUILayout.ExpandWidth(true));
-            return FigmaButtonAt(r, text, accent ? ButtonKind.Primary : ButtonKind.Secondary, 12);
-        }
-
-        internal static bool IconButton(string glyph, float size = 16f)
-        {
-            Rect r = GUILayoutUtility.GetRect(size, size, GUIStyle.none, GUILayout.Width(size), GUILayout.Height(size));
-            return FigmaButtonAt(r, glyph, ButtonKind.Secondary, 10);
         }
 
         // ---- Scroll view ----
