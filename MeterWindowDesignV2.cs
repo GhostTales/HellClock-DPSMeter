@@ -260,7 +260,7 @@ namespace DPSMeter
 
             var mainBodyBottomBarsInfoData = mainBodyBottomBarsInfo.Add(new FigmaFrame(default)
             {
-                Layout = FigmaLayout.Horizontal,
+                Layout = FigmaLayout.Vertical,
                 Fill = Background,
                 MainAlign = FigmaAlign.End,
                 CrossAlign = FigmaAlign.Center,
@@ -310,18 +310,18 @@ namespace DPSMeter
 
                         var barsInfoData = mainBodyBottomBarsInfoData.Add(new FigmaFrame(default) 
                         {
-                            Layout = FigmaLayout.Vertical,
+                            Layout = FigmaLayout.Horizontal,
                             Fill = Background,
                             MainAlign = FigmaAlign.End,
                             CrossAlign = FigmaAlign.Center,
                             Bounds = new Rect(0f, 0f, 130f, 12f),
                             Gap = 10f,
-                            Padding = new Vector4(5f, 0f, 0f, 0f),
+                            Padding = new Vector4(0f, 0f, 0f, 0f),
                         }.Size(FigmaSize.Fill, FigmaSize.Hug));
 
 
                         barsInfoData.Add(new FigmaText(default, Fmt(amount), 12, Primary){ 
-                            Bounds = new Rect(0f, 0f, 45f, 12f), 
+                            Bounds = new Rect(0f, 0f, 50f, 12f), 
                             Align = TextAnchor.MiddleRight 
                         }.Size(FigmaSize.Fixed, FigmaSize.Hug));
                         
