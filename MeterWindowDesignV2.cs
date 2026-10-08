@@ -9,6 +9,7 @@ namespace DPSMeter
     internal class MeterWindowDesignV2
     {
         internal static bool IsMouseOver;
+        static string SelectedBreakdownTab = "Skill";
         readonly FigmaWindow _window;
         FigmaFrame root;
 
@@ -80,17 +81,17 @@ namespace DPSMeter
 
             header.Add(buttonRow);
 
-
             var mainBody = root.Add(new FigmaFrame(default)
             {
                 Layout = FigmaLayout.Horizontal,
                 Fill = Background,
                 MainAlign = FigmaAlign.Start,
                 CrossAlign = FigmaAlign.Start,
-                CornerRadii = new Vector4(0f, 0f, 10f, 10f),
+                CornerRadii = new Vector4(0f, 0f, 0f, 0f),
                 Padding = new Vector4(0f, 10f, 0f, 10f),
                 Gap = 10f,
-            }.Size(FigmaSize.Fill, FigmaSize.Fill));
+                Bounds = new Rect(0f, 0f, _window.Rect.width, 170f),
+            }.Size(FigmaSize.Fill, FigmaSize.Hug));
 
             var mainBodyLeft = mainBody.Add(new FigmaFrame(default)
             {
@@ -155,8 +156,6 @@ namespace DPSMeter
                 BorderWidth = 1f,
             }.Size(FigmaSize.Fixed, FigmaSize.Fixed));
 
-            
-
             // Elapsed time once a fight has started, otherwise a circular icon.
             bool fighting = Tracker.Elapsed > 0;
             var counterButton = counterFrame.Add(new FigmaButton(default,
@@ -167,7 +166,7 @@ namespace DPSMeter
                 IconSize = 14f
             }.Size(FigmaSize.Fill, FigmaSize.Hug));
 
-
+            // Right side of the main body frame
             var mainBodyRight = mainBody.Add(new FigmaFrame(default)
             {
                 Layout = FigmaLayout.Vertical,
@@ -179,6 +178,9 @@ namespace DPSMeter
                 Bounds = new Rect(0f, 0f, _window.Rect.width, 180f),
             }.Size(FigmaSize.Fill, FigmaSize.Hug));
 
+
+
+            // Info dictionary for the right side of the main body
             Dictionary<string, string> infoDict = new()
             {
                 { "Total", Fmt(Tracker.Total)},
@@ -188,6 +190,7 @@ namespace DPSMeter
                 { "Crit rate", $"{(float)Tracker.Crits / Math.Max(1, Tracker.Hits) * 100:0.#}%" }
             };
 
+            // Iterate through the info dictionary and create UI elements for each key-value pair
             foreach (var kvp in infoDict)
             {
                 var infoFrame = mainBodyRight.Add(new FigmaFrame(default)
@@ -206,6 +209,83 @@ namespace DPSMeter
                 infoFrame.Add(new FigmaText(default, kvp.Value, 16, Primary, TextAnchor.MiddleRight).Size(FigmaSize.Hug, FigmaSize.Hug));
             }
 
+            // Bottom section of the main body frame
+            var mainBodyBottom = root.Add(new FigmaFrame(default)
+            {
+                Layout = FigmaLayout.Vertical,
+                Fill = Primary,
+                MainAlign = FigmaAlign.Center,
+                CrossAlign = FigmaAlign.Center,
+                Padding = new Vector4(10f, 10f, 10f, 10f),
+                Gap = 10f,
+                Bounds = new Rect(0f, 0f, _window.Rect.width, 208f),
+            }.Size(FigmaSize.Fill, FigmaSize.Hug));
+
+            var mainBodyBottomButtonHeader = mainBodyBottom.Add(new FigmaFrame(default)
+            {
+                Layout = FigmaLayout.Horizontal,
+                Fill = Background,
+                MainAlign = FigmaAlign.Start,
+                CrossAlign = FigmaAlign.Start,
+                Padding = new Vector4(0f, 10f, 0f, 10f),
+                Gap = 10f,
+                Bounds = new Rect(0f, 0f, _window.Rect.width, 35f),
+            }.Size(FigmaSize.Fill, FigmaSize.Fixed));
+
+            // skill breakdown tab button
+            var skillButton = mainBodyBottomButtonHeader.Add(new FigmaButton(default, "Skill",
+                SelectedBreakdownTab == "Skill" ? Gui.ButtonKind.Primary : Gui.ButtonKind.Secondary, 14,
+                () => SelectedBreakdownTab = "Skill")
+            {
+                Fill = null,
+                Bounds = new Rect(0f, 0f, _window.Rect.width, 30f),
+            }.Size(FigmaSize.Fill, FigmaSize.Fixed));
+
+
+            // damage type breakdown tab button
+            var damageTypeButton = mainBodyBottomButtonHeader.Add(new FigmaButton(default, "Damage Type",
+                SelectedBreakdownTab == "Damage Type" ? Gui.ButtonKind.Primary : Gui.ButtonKind.Secondary, 14,
+                () => SelectedBreakdownTab = "Damage Type")
+            {
+                Fill = null,
+                Bounds = new Rect(0f, 0f, _window.Rect.width, 30f),
+            }.Size(FigmaSize.Fill, FigmaSize.Fixed));
+
+            var mainBodyBottomContent = mainBodyBottom.Add(new FigmaFrame(default)
+            {
+                Layout = FigmaLayout.Vertical,
+                Fill = Background,
+                MainAlign = FigmaAlign.Start,
+                CrossAlign = FigmaAlign.Start,
+                Padding = new Vector4(10f, 10f, 10f, 10f),
+                Gap = 4f,
+                Bounds = new Rect(0f, 0f, _window.Rect.width, 188f),
+            }.Size(FigmaSize.Fill, FigmaSize.Hug));
+
+
+
+
+            // fix ai shit code below
+
+
+
+            if (SelectedBreakdownTab == "Skill")
+            {
+                var skills = Tracker.Skills.OrderByDescending(skill => skill.Value.Total).Take(4).ToList();
+                if (skills.Count == 0)
+                {
+                    mainBodyBottomContent.Add(new FigmaText(default, "No skill damage recorded", 14, Text)
+                        .Size(FigmaSize.Hug, FigmaSize.Hug));
+                }
+                else
+                {
+                    // add info bars for each skill.
+                }
+            }
+            else
+            {
+                // add info abrs for damage types. only display types with non-zero totals
+            }
 
         }
 
@@ -234,6 +314,12 @@ namespace DPSMeter
         {
             // Implement the logic to close the window here
         }
+
+        static void CreateProgressBar(float value, Color color, double[]segments)
+        {
+            // Create and return a new FigmaProgressBar with the specified value and color
+        }
+        
 
         static string Fmt(double v)
         {
