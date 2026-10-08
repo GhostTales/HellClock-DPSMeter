@@ -15,6 +15,9 @@ namespace DPSMeter
 
     internal enum FigmaTrackKind { Fixed, Hug, Fr }
 
+    // Pointer state of a frame, resolved on every render.
+    internal enum FigmaState { Idle, Hover, Pressed }
+
     // One grid row or column definition: Px(100), Hug, Fr(0.25).
     internal readonly struct FigmaTrack
     {
@@ -44,7 +47,7 @@ namespace DPSMeter
 
     internal class FigmaFrame
     {
-        internal Rect Bounds;
+        internal Rect Bounds; // left, top, width, height
         internal Color? Fill;
         internal Color? Border;
         // Per-side colour overrides; a side left null uses Border.
@@ -79,6 +82,17 @@ namespace DPSMeter
         internal FigmaAlign CellAlignX;      // grid: position inside the cell when not Fill
         internal FigmaAlign CellAlignY;
 
+        // Interaction. Any frame can be clickable / hoverable; the Hover*/Pressed* overrides fall back to the
+        // previous state (Pressed -> Hover -> idle value). Tint multiplies the colours of this frame and all its
+        // descendants, so a button can dim or brighten its whole content at once.
+        internal Action Clicked;
+        internal Action Hovered;             // called every repaint while the pointer is over the frame
+        internal Color Tint = Color.white;
+        internal Color? HoverTint, PressedTint;
+        internal Color? HoverFill, PressedFill;
+        internal Color? HoverBorder, PressedBorder;
+        internal FigmaState State { get; private set; }
+
         // Debug view: every frame is drawn as an outline instead of its fill/border.
         internal static bool Wireframe;
         static readonly Color WireColor = new Color(0f, 1f, 1f, 0.9f);
@@ -98,26 +112,50 @@ namespace DPSMeter
 
         internal void Render(Rect parent)
         {
-            RenderAt(new Rect(parent.x + Bounds.x, parent.y + Bounds.y, Bounds.width, Bounds.height));
+            Render(parent, Color.white);
         }
 
-        void RenderAt(Rect rect)
+        void Render(Rect parent, Color inherited)
         {
-            Draw(rect);
+            RenderAt(new Rect(parent.x + Bounds.x, parent.y + Bounds.y, Bounds.width, Bounds.height), inherited);
+        }
+
+        void RenderAt(Rect rect, Color inherited)
+        {
+            bool hover = rect.Contains(Event.current.mousePosition);
+            State = !hover ? FigmaState.Idle : Input.GetMouseButton(0) ? FigmaState.Pressed : FigmaState.Hover;
+            var tint = inherited * StateValue<Color>(Tint, HoverTint, PressedTint).Value;
+
+            Draw(rect, tint);
             if (Wireframe && Event.current.type == EventType.Repaint) Gui.Outline(rect, WireColor, 1f);
             switch (Layout)
             {
                 case FigmaLayout.None:
-                    for (int i = 0; i < Children.Count; i++) Children[i].Render(rect);
-                    return;
+                    for (int i = 0; i < Children.Count; i++) Children[i].Render(rect, tint);
+                    break;
                 case FigmaLayout.Grid:
                     var cells = LayoutGrid(rect);
-                    for (int i = 0; i < Children.Count; i++) Children[i].RenderAt(cells[i]);
-                    return;
+                    for (int i = 0; i < Children.Count; i++) Children[i].RenderAt(cells[i], tint);
+                    break;
                 default:
                     var rects = LayoutStack(rect);
-                    for (int i = 0; i < Children.Count; i++) Children[i].RenderAt(rects[i]);
-                    return;
+                    for (int i = 0; i < Children.Count; i++) Children[i].RenderAt(rects[i], tint);
+                    break;
+            }
+
+            // Input is handled after the children so nested clickable frames take priority over their parent.
+            if (Clicked != null && GUI.Button(rect, GUIContent.none, GUIStyle.none)) Clicked();
+            if (hover && Hovered != null && Event.current.type == EventType.Repaint) Hovered();
+        }
+
+        // Picks the value for the current pointer state.
+        T? StateValue<T>(T? idle, T? hover, T? pressed) where T : struct
+        {
+            switch (State)
+            {
+                case FigmaState.Pressed: return pressed ?? hover ?? idle;
+                case FigmaState.Hover: return hover ?? idle;
+                default: return idle;
             }
         }
 
@@ -332,39 +370,41 @@ namespace DPSMeter
             return align == FigmaAlign.Center ? free * 0.5f : align == FigmaAlign.End ? free : 0f;
         }
 
-        protected virtual void Draw(Rect rect)
+        protected virtual void Draw(Rect rect, Color tint)
         {
             if (Wireframe || Event.current.type != EventType.Repaint) return;
             bool rounded = CornerRadii != Vector4.zero;
-            var left = BorderLeft ?? Border;
-            var top = BorderTop ?? Border;
-            var right = BorderRight ?? Border;
-            var bottom = BorderBottom ?? Border;
-            var baseColor = Border ?? left ?? top ?? right ?? bottom;
+            var fill = StateValue<Color>(Fill, HoverFill, PressedFill);
+            var border = StateValue<Color>(Border, HoverBorder, PressedBorder);
+            var left = BorderLeft ?? border;
+            var top = BorderTop ?? border;
+            var right = BorderRight ?? border;
+            var bottom = BorderBottom ?? border;
+            var baseColor = border ?? left ?? top ?? right ?? bottom;
             bool hasBorder = baseColor.HasValue;
             var b = BorderWidths;
 
-            if (hasBorder && !Fill.HasValue && !rounded)
+            if (hasBorder && !fill.HasValue && !rounded)
             {
                 // No fill to punch a hole into, so draw only the sides that have a colour and a width.
-                if (top.HasValue) Gui.Round(new Rect(rect.x, rect.y, rect.width, b.y), top.Value, 0f);
-                if (bottom.HasValue) Gui.Round(new Rect(rect.x, rect.yMax - b.w, rect.width, b.w), bottom.Value, 0f);
-                if (left.HasValue) Gui.Round(new Rect(rect.x, rect.y + b.y, b.x, rect.height - b.y - b.w), left.Value, 0f);
-                if (right.HasValue) Gui.Round(new Rect(rect.xMax - b.z, rect.y + b.y, b.z, rect.height - b.y - b.w), right.Value, 0f);
+                if (top.HasValue) Gui.Round(new Rect(rect.x, rect.y, rect.width, b.y), top.Value * tint, 0f);
+                if (bottom.HasValue) Gui.Round(new Rect(rect.x, rect.yMax - b.w, rect.width, b.w), bottom.Value * tint, 0f);
+                if (left.HasValue) Gui.Round(new Rect(rect.x, rect.y + b.y, b.x, rect.height - b.y - b.w), left.Value * tint, 0f);
+                if (right.HasValue) Gui.Round(new Rect(rect.xMax - b.z, rect.y + b.y, b.z, rect.height - b.y - b.w), right.Value * tint, 0f);
                 return;
             }
 
             if (hasBorder)
             {
-                Gui.Round(rect, baseColor.Value, CornerRadii);
+                Gui.Round(rect, baseColor.Value * tint, CornerRadii);
                 // Sides with their own colour are painted over the base, stopping short of the rounded corners.
                 var r = CornerRadii;
-                if (BorderTop.HasValue) Gui.Round(new Rect(rect.x + r.x, rect.y, rect.width - r.x - r.y, b.y), BorderTop.Value, 0f);
-                if (BorderBottom.HasValue) Gui.Round(new Rect(rect.x + r.w, rect.yMax - b.w, rect.width - r.w - r.z, b.w), BorderBottom.Value, 0f);
-                if (BorderLeft.HasValue) Gui.Round(new Rect(rect.x, rect.y + r.x, b.x, rect.height - r.x - r.w), BorderLeft.Value, 0f);
-                if (BorderRight.HasValue) Gui.Round(new Rect(rect.xMax - b.z, rect.y + r.y, b.z, rect.height - r.y - r.z), BorderRight.Value, 0f);
+                if (BorderTop.HasValue) Gui.Round(new Rect(rect.x + r.x, rect.y, rect.width - r.x - r.y, b.y), BorderTop.Value * tint, 0f);
+                if (BorderBottom.HasValue) Gui.Round(new Rect(rect.x + r.w, rect.yMax - b.w, rect.width - r.w - r.z, b.w), BorderBottom.Value * tint, 0f);
+                if (BorderLeft.HasValue) Gui.Round(new Rect(rect.x, rect.y + r.x, b.x, rect.height - r.x - r.w), BorderLeft.Value * tint, 0f);
+                if (BorderRight.HasValue) Gui.Round(new Rect(rect.xMax - b.z, rect.y + r.y, b.z, rect.height - r.y - r.z), BorderRight.Value * tint, 0f);
             }
-            if (Fill.HasValue)
+            if (fill.HasValue)
             {
                 var w = hasBorder ? BorderWidths : Vector4.zero;
                 var fillRect = new Rect(rect.x + w.x, rect.y + w.y, rect.width - w.x - w.z, rect.height - w.y - w.w);
@@ -376,7 +416,7 @@ namespace DPSMeter
                         Mathf.Max(0f, CornerRadii.y - Mathf.Max(w.z, w.y)),
                         Mathf.Max(0f, CornerRadii.z - Mathf.Max(w.z, w.w)),
                         Mathf.Max(0f, CornerRadii.w - Mathf.Max(w.x, w.w)));
-                    Gui.Round(fillRect, Fill.Value, inner);
+                    Gui.Round(fillRect, fill.Value * tint, inner);
                 }
             }
         }
@@ -413,79 +453,34 @@ namespace DPSMeter
 
         protected override Vector2 Measure() => _style.CalcSize(new GUIContent(Text));
 
-        protected override void Draw(Rect rect)
+        protected override void Draw(Rect rect, Color tint)
         {
+            base.Draw(rect, tint);
+            _style.normal.textColor = Gui.TextColor(_color) * tint;
             GUI.Label(rect, Text, _style);
         }
     }
 
-    internal sealed class FigmaButton : FigmaFrame
+    // A frame that draws a texture (icon) on top of its own fill / border.
+    internal sealed class FigmaImage : FigmaFrame
     {
-        internal string Text;
-        internal Gui.ButtonKind Kind;
-        internal int FontSize;
-        internal Action Clicked;
-        internal Texture2D Icon;             // optional; drawn before the text, or alone when Text is empty
-        internal float IconSize = 20f;
-        internal Color? IconTint;            // null = draw the PNG as is
+        internal Texture2D Texture;
+        internal Color ImageTint = Color.white;      // multiplied with the PNG's colours
+        internal ScaleMode Scale = ScaleMode.ScaleToFit;
 
-        // Icon-only button, e.g. new FigmaButton(default, Gui.Icon("ConfigGear.png"), Gui.ButtonKind.Secondary, 20, OnClick).
-        internal FigmaButton(Rect bounds, Texture2D icon, Gui.ButtonKind kind, float iconSize, Action clicked)
-            : this(bounds, "", kind, 14, clicked)
+        internal FigmaImage(Rect bounds, Texture2D texture) : base(bounds)
         {
-            Icon = icon;
-            IconSize = iconSize;
+            Texture = texture;
         }
 
-        internal FigmaButton(Rect bounds, string text, Gui.ButtonKind kind, int fontSize, Action clicked) : base(bounds)
+        protected override void Draw(Rect rect, Color tint)
         {
-            Text = text;
-            Kind = kind;
-            FontSize = fontSize;
-            Clicked = clicked;
-        }
-
-        protected override Vector2 Measure()
-        {
-            bool hasText = !string.IsNullOrEmpty(Text);
-            bool hasIcon = Icon != null;
-            float padX = Kind == Gui.ButtonKind.None ? 0f : 24f, padY = Kind == Gui.ButtonKind.None ? 0f : 8f;
-            var size = hasText ? new GUIStyle(GUI.skin.label) { fontSize = FontSize }.CalcSize(new GUIContent(Text)) : Vector2.zero;
-            if (!hasIcon) return new Vector2(size.x + padX, size.y + padY);
-            if (!hasText) return new Vector2(IconSize + padX * 2f / 3f, IconSize + padY);
-            return new Vector2(IconSize + Gui.IconGap + size.x + padX, Mathf.Max(IconSize, size.y) + padY);
-        }
-
-        protected override void Draw(Rect rect)
-        {
-            if (Gui.FigmaButtonAt(rect, Text, Kind, FontSize, Icon, IconSize, IconTint)) Clicked?.Invoke();
+            base.Draw(rect, tint);
+            if (Texture == null || Wireframe || Event.current.type != EventType.Repaint) return;
+            GUI.DrawTexture(rect, Texture, Scale, true, 0f, ImageTint * tint, 0f, 0f);
         }
     }
 
-    internal sealed class FigmaProgressBar : FigmaFrame
-    {
-        internal float Value;
-        internal double[] Segments;
-        internal Color[] Colors;
-        internal Action Clicked;
-        internal Action Hovered;
-
-        internal FigmaProgressBar(Rect bounds, float value, double[] segments, Color[] colors, Action clicked, Action hovered) : base(bounds)
-        {
-            Value = value;
-            Segments = segments;
-            Colors = colors;
-            Clicked = clicked;
-            Hovered = hovered;
-        }
-
-        protected override void Draw(Rect rect)
-        {
-            if (GUI.Button(rect, GUIContent.none, GUIStyle.none)) Clicked?.Invoke();
-            Gui.SegmentedProgressBarAt(rect, Value, Segments, Colors);
-            if (Event.current.type == EventType.Repaint && rect.Contains(Event.current.mousePosition)) Hovered?.Invoke();
-        }
-    }
 
     internal sealed class FigmaWindow
     {
