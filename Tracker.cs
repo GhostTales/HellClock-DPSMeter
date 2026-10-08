@@ -32,8 +32,10 @@ namespace DPSMeter
         public static readonly string[] TypeNames = { "Physical", "Fire", "Plague", "Lightning" };
         public static readonly Color[] TypeColors =
         {
-            new Color(0.78f, 0.78f, 0.78f), new Color(1f, 0.45f, 0.15f),
-            new Color(0.5f, 0.85f, 0.2f), new Color(0.4f, 0.7f, 1f)
+            new Color(0xF6 / 255f, 0x3D / 255f, 0x2C / 255f), // Physical
+            new Color(0xF6 / 255f, 0x73 / 255f, 0x2C / 255f), // Fire
+            new Color(0x00 / 255f, 0xD8 / 255f, 0x3A / 255f), // Plague
+            new Color(0x2C / 255f, 0x94 / 255f, 0xF6 / 255f) // Lightning
         };
         public static readonly double[] TypeTotals = new double[TypeCount];
         public static readonly int[] TypeHits = new int[TypeCount];
