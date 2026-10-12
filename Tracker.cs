@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using HellClock.Damage;
 using UnityEngine;
 
@@ -13,6 +14,7 @@ namespace DPSMeter
             public int Hits;
             public int Crits;
             public double Max;
+            public Sprite Icon; // null when the source has no icon
             public readonly double[] ByType = new double[TypeCount];
             public readonly Dictionary<string, UniqueHit> Uniques = new Dictionary<string, UniqueHit>();
         }
@@ -98,6 +100,7 @@ namespace DPSMeter
 
             string name = SkillName(d);
             if (!Skills.TryGetValue(name, out var e)) Skills[name] = e = new Entry();
+            if (e.Icon == null) e.Icon = SourceIcon(d);
             e.Total += value;
             e.Hits++;
             if (d.IsCritical) e.Crits++;
@@ -118,6 +121,19 @@ namespace DPSMeter
                 TypeHits[i]++;
                 e.ByType[i] += split[i];
             }
+        }
+
+        // Icons of the skills that dealt damage of this type, biggest contributor first. Skills without an icon are skipped.
+        public static List<Sprite> IconsForType(int type, int max = int.MaxValue)
+        {
+            var icons = new List<Sprite>();
+            foreach (var kv in Skills.OrderByDescending(s => s.Value.ByType[type]))
+            {
+                if (kv.Value.ByType[type] <= 0) break;
+                if (kv.Value.Icon != null && !icons.Contains(kv.Value.Icon)) icons.Add(kv.Value.Icon);
+                if (icons.Count >= max) break;
+            }
+            return icons;
         }
 
         static void SplitByType(DamageInstance d, double value, double[] split)
@@ -145,6 +161,24 @@ namespace DPSMeter
             }
             double scale = value / sum; // keeps overkill capping consistent
             for (int i = 0; i < TypeCount; i++) split[i] *= scale;
+        }
+
+        // Skill icon, or the status icon for damage over time from a non-skill source
+        static Sprite SourceIcon(DamageInstance d)
+        {
+            try
+            {
+                if (d.SkillID != -1)
+                {
+                    var icon = HellClock.Skill.SkillDefinition.GetSkillDefinition(d.SkillID)?.Icon;
+                    if (icon != null) return icon;
+                }
+                var dot = d.DamageSourceInfo?.DamageOverTimeID ?? -1;
+                if (dot != -1)
+                    return HellClock.Constants.Collections.STATUS_DEFINITION_COLLECTION.Reference.GetElement(dot)?.StatusDisplayInfo.Icon;
+            }
+            catch { }
+            return null;
         }
 
         static string SkillName(DamageInstance d)
