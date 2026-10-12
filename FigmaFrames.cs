@@ -45,6 +45,8 @@ namespace DPSMeter
         }
     }
 
+    // Optional layout/interaction fields are part of the frame API and may be unused by the current UI.
+#pragma warning disable CS0649
     internal class FigmaFrame
     {
         internal Rect Bounds; // left, top, width, height
@@ -424,6 +426,7 @@ namespace DPSMeter
             }
         }
     }
+#pragma warning restore CS0649
 
     internal sealed class FigmaText : FigmaFrame
     {
