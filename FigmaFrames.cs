@@ -465,6 +465,7 @@ namespace DPSMeter
     internal sealed class FigmaImage : FigmaFrame
     {
         internal Texture2D Texture;
+        internal Sprite Sprite;                      // drawn instead of Texture when set (cropped out of its atlas)
         internal Color ImageTint = Color.white;      // multiplied with the PNG's colours
         internal ScaleMode Scale = ScaleMode.ScaleToFit;
 
@@ -473,11 +474,41 @@ namespace DPSMeter
             Texture = texture;
         }
 
+        internal FigmaImage(Rect bounds, Sprite sprite) : base(bounds)
+        {
+            Sprite = sprite;
+        }
+
         protected override void Draw(Rect rect, Color tint)
         {
             base.Draw(rect, tint);
-            if (Texture == null || Wireframe || Event.current.type != EventType.Repaint) return;
+            if (Wireframe || Event.current.type != EventType.Repaint) return;
+            if (Sprite != null && Sprite.texture != null)
+            {
+                DrawSprite(rect, ImageTint * tint);
+                return;
+            }
+            if (Texture == null) return;
             GUI.DrawTexture(rect, Texture, Scale, true, 0f, ImageTint * tint, 0f, 0f);
+        }
+
+        void DrawSprite(Rect rect, Color color)
+        {
+            var tex = Sprite.texture;
+            var r = Sprite.textureRect;
+
+            // fit inside rect, keeping the aspect ratio
+            float scale = Mathf.Min(rect.width / r.width, rect.height / r.height);
+            float w = r.width * scale, h = r.height * scale;
+            var dest = new Rect(rect.x + (rect.width - w) * 0.5f, rect.y + (rect.height - h) * 0.5f, w, h);
+
+            // GUI.DrawTextureWithTexCoords is missing at runtime: draw the whole atlas, offset and clipped by a group
+            // (texture y goes up, GUI y goes down)
+            // The game's IMGUI module only has the 3-argument BeginGroup overload
+            GUI.BeginGroup(dest, GUIContent.none, GUIStyle.none);
+            var atlas = new Rect(-r.x * scale, -(tex.height - r.yMax) * scale, tex.width * scale, tex.height * scale);
+            GUI.DrawTexture(atlas, tex, ScaleMode.StretchToFill, true, 0f, color, 0f, 0f);
+            GUI.EndGroup();
         }
     }
 
