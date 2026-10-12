@@ -57,7 +57,7 @@ namespace DPSMeter
 
         // Uniform shorthands that set all four sides / corners.
         internal float BorderWidth { get => BorderWidths.x; set => BorderWidths = new Vector4(value, value, value, value); }
-        internal float CornerRadius { get => CornerRadii.x; set => CornerRadii = new Vector4(value, value, value, value); }
+        internal float CornerRadius { get => CornerRadii.x; set => CornerRadii = new Vector4(value, value, value, value); } // corners still visible if border width is 0
 
         // Auto layout (mirrors Figma's panel). Layout.None keeps absolute Bounds positioning.
         internal FigmaLayout Layout;
