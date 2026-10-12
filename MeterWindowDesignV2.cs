@@ -305,7 +305,7 @@ namespace DPSMeter
                         if (amount <= 0) continue;
 
                         // One segment filling the whole bar means no segmentation
-                        mainBodyBottomBars.Add(ProgressBar((float)(amount / sum), new[] { 1.0 }, new[] { Tracker.TypeColors[i] } , Tracker.TypeNames[i]));
+                        mainBodyBottomBars.Add(ProgressBar((float)(amount / sum), new[] { 1.0 }, new[] { Tracker.TypeColors[i] } , Tracker.TypeNames[i]), Tracker.Icons[i]);
 
 
                         var barsInfoData = mainBodyBottomBarsInfoData.Add(new FigmaFrame(default) 
@@ -377,8 +377,8 @@ namespace DPSMeter
                 CrossAlign = FigmaAlign.Center,
                 Padding = new Vector4(0f, 0f, 0f, 0f),
                 Border = border,
-                BorderWidth = 1f,
-                CornerRadius = 2f,
+                BorderWidths = new Vector4(0f, 0f, 0f, 1f),
+                //CornerRadius = 2f,
                 Gap = 20f,
                 Fill = Background,
                 Clicked = clicked,
@@ -406,7 +406,7 @@ namespace DPSMeter
 
         // Progress bar built from frames: outline > track > one frame per segment, sized by FillWeight.
         // value is the filled fraction of the track; segments are split proportionally over the filled part.
-        static FigmaFrame ProgressBar(float value, double[] segments, Color[] colors, string label = null, Action clicked = null, Action hovered = null)
+        static FigmaFrame ProgressBar(float value, double[] segments, Color[] colors, string label = null, FigmaImage[] icons = null, Action clicked = null, Action hovered = null)
         {
             // main container for the progress bar and its label
             var frame = new FigmaFrame(default)
@@ -419,8 +419,19 @@ namespace DPSMeter
             }.Size(FigmaSize.Fill, FigmaSize.Hug);
             
             // label for the progress bar, if provided
+            FigmaFrame labelText = null;
             if (!string.IsNullOrEmpty(label))
-                frame.Add(new FigmaText(default, label, 14, Text, TextAnchor.MiddleLeft).Size(FigmaSize.Hug, FigmaSize.Hug));
+            {
+                labelText = frame.Add(new FigmaText(default, label, 14, Text, TextAnchor.MiddleLeft).Size(FigmaSize.Hug, FigmaSize.Hug));
+            }
+            // icons for the progress bar, if provided
+            if (icons != null)
+            {
+                foreach (var icon in icons)
+                {
+                    labelText.Add(icon);
+                }
+            }
 
             // container for the progress bar
             var barContainer = frame.Add(new FigmaFrame(default)
