@@ -170,6 +170,9 @@ namespace DPSMeter
             }
         }
 
+        // Size this frame needs to show its content (padding and gaps included).
+        internal Vector2 ContentSize() => Measure();
+
         float Intrinsic(bool horizontal)
         {
             if ((horizontal ? WidthSize : HeightSize) == FigmaSize.Fixed)
@@ -540,6 +543,17 @@ namespace DPSMeter
             Rect = new Rect(Rect.x, Rect.y, Mathf.Max(_minimumSize.x, width), Mathf.Max(_minimumSize.y, height));
         }
 
+        // Makes the window follow its content size on the enabled axes. Call it while drawing; the new size is
+        // applied after GUI.Window returns (so it isn't overwritten) and shows up on the next repaint.
+        internal bool AutoWidth { get; set; }
+        internal bool AutoHeight { get; set; }
+        Vector2? _pendingFit;
+
+        internal void FitTo(FigmaFrame root)
+        {
+            if (AutoWidth || AutoHeight) _pendingFit = root.ContentSize();
+        }
+
         internal void UpdateInput(bool active)
         {
             if (!active || !Resizable)
@@ -593,6 +607,11 @@ namespace DPSMeter
                 Mathf.Clamp(Rect.width, Mathf.Min(_minimumSize.x, maxWidth), maxWidth),
                 Mathf.Clamp(Rect.height, Mathf.Min(_minimumSize.y, maxHeight), maxHeight));
             Rect = GUI.Window(_id, Rect, _draw, "", GUIStyle.none);
+            if (_pendingFit is Vector2 fit)
+            {
+                _pendingFit = null;
+                SetSize(AutoWidth ? fit.x : Rect.width, AutoHeight ? fit.y : Rect.height);
+            }
             Rect = new Rect(
                 Mathf.Clamp(Rect.x, 0f, Mathf.Max(0f, Screen.width - ScreenMargin)),
                 Mathf.Clamp(Rect.y, 0f, Mathf.Max(0f, Screen.height - ScreenMargin)),
