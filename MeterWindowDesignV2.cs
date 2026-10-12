@@ -21,6 +21,7 @@ namespace DPSMeter
 
         public MeterWindowDesignV2(FigmaWindow window)
         {
+
             _window = window;
             root = new FigmaFrame(new Rect(0f, 0f, _window.Rect.width, _window.Rect.height))
             {
@@ -65,7 +66,7 @@ namespace DPSMeter
                 Fill = Background,
                 MainAlign = FigmaAlign.Start,
                 CrossAlign = FigmaAlign.Start,
-                CornerRadii = new Vector4(0f, 0f, 0f, 0f),
+                CornerRadii = new Vector4(0f, 0f, 10f, 10f),
                 Padding = new Vector4(0f, 10f, 0f, 10f),
                 Gap = 10f,
                 Bounds = new Rect(0f, 0f, _window.Rect.width, 170f),
@@ -348,6 +349,7 @@ namespace DPSMeter
         
         public void Render()
         {
+            _window.FitTo(root);
             root.Render(new Rect(0f, 0f, _window.Rect.width, _window.Rect.height));
         }
 
