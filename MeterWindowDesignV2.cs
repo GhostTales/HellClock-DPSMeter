@@ -8,7 +8,6 @@ namespace DPSMeter
 {
     internal class MeterWindowDesignV2
     {
-        internal static bool IsMouseOver;
         static string SelectedBreakdownTab = "Skill";
         readonly FigmaWindow _window;
         FigmaFrame root;
