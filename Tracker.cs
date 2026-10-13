@@ -16,19 +16,7 @@ namespace DPSMeter
             public double Max;
             public Sprite Icon; // null when the source has no icon
             public readonly double[] ByType = new double[TypeCount];
-            public readonly Dictionary<string, UniqueHit> Uniques = new Dictionary<string, UniqueHit>();
         }
-
-        // One distinct damage number a skill has dealt, with the formula snapshot of its first occurrence
-        internal class UniqueHit
-        {
-            public double Value;
-            public bool Crit;
-            public int Count;
-            public List<string> Chain;
-        }
-
-        const int MaxUniques = 300;
 
         public const int TypeCount = 4;
         public static readonly string[] TypeNames = { "Physical", "Fire", "Plague", "Lightning" };
@@ -106,11 +94,6 @@ namespace DPSMeter
             if (d.IsCritical) e.Crits++;
             if (value > e.Max) e.Max = value;
             if (d.IsDamageOverTime) DotTotal += value;
-
-            string key = Math.Round(d.Value).ToString("0") + (d.IsCritical ? "c" : "");
-            if (e.Uniques.TryGetValue(key, out var u)) u.Count++;
-            else if (e.Uniques.Count < MaxUniques)
-                e.Uniques[key] = new UniqueHit { Value = d.Value, Crit = d.IsCritical, Count = 1, Chain = Breakdown.Build(d) };
 
             var split = new double[TypeCount];
             SplitByType(d, value, split);

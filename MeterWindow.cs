@@ -1,3 +1,4 @@
+using FrameUI;
 using UnityEngine;
 
 namespace DPSMeter
@@ -10,16 +11,8 @@ namespace DPSMeter
         FigmaWindow _window;
         bool _visible = true;
 
-        internal static bool IsMouseOver;
-
         void Update()
         {
-            if (_window != null)
-            {
-                var mouse = Input.mousePosition;
-                IsMouseOver = _visible && _window.Contains(new Vector2(mouse.x, Screen.height - mouse.y));
-            }
-
             if (Input.GetKeyDown(Plugin.ToggleKey.Value)) _visible = !_visible;
             if (Input.GetKeyDown(Plugin.ResetKey.Value)) Tracker.Reset();
         }

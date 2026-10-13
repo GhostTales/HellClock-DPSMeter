@@ -25,6 +25,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../../FrameUI/src/FrameUI/FrameUI.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <EmbeddedResource Include="Textures/*.png" LogicalName="Textures.%(Filename)%(Extension)" />
   </ItemGroup>
 
