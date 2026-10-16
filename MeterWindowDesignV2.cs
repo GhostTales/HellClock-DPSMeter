@@ -9,18 +9,19 @@ namespace DPSMeter
     internal class MeterWindowDesignV2
     {
         static string SelectedBreakdownTab = "Skill";
+        readonly MeterWindow _meterWindow;
         readonly FigmaWindow _window;
         FigmaFrame root;
 
-        static readonly Color Accent = new Color(0x15 / 255f, 0x14 / 255f, 0x19 / 255f);
-        static readonly Color Background = new Color(0x17 / 255f, 0x16 / 255f, 0x1D / 255f);
-        static readonly Color Primary = new Color(0xF6 / 255f, 0x4C / 255f, 0x2C / 255f);
-        static readonly Color Text = new Color(0xFF / 255f, 0xE9 / 255f, 0xE9 / 255f);
-        static readonly Color Secondary = new Color(0x8B / 255f, 0x7F / 255f, 0x83 / 255f);
+        static readonly Color Accent = Helpers.Accent;
+        static readonly Color Background = Helpers.Background;
+        static readonly Color Primary = Helpers.Primary;
+        static readonly Color Text = Helpers.Text;
+        static readonly Color Secondary = Helpers.Secondary;
 
-        public MeterWindowDesignV2(FigmaWindow window)
+        public MeterWindowDesignV2(MeterWindow meterWindow, FigmaWindow window)
         {
-
+            _meterWindow = meterWindow;
             _window = window;
             root = new FigmaFrame(new Rect(0f, 0f, _window.Rect.width, _window.Rect.height))
             {
@@ -31,19 +32,7 @@ namespace DPSMeter
             };
 
             
-            var header = root.Add(new FigmaFrame(default)
-            {
-                Layout = FigmaLayout.Horizontal,
-                Fill = Accent,
-                MainAlign = FigmaAlign.SpaceBetween,   // title left, buttons right
-                CrossAlign = FigmaAlign.Center,        // vertically centred
-                CornerRadii = new Vector4(10f, 10f, 0f, 0f),
-                Padding = new Vector4(10f, 0f, 10f, 0f),
-                Bounds = new Rect(0f, 0f, _window.Rect.width, 40f),
-            }.Size(FigmaSize.Fill, FigmaSize.Fixed));
-
-            // Header title
-            var title = header.Add(new FigmaText(default, "DPS METER", 16, Primary).Size(FigmaSize.Hug, FigmaSize.Hug));
+            var header = root.Add(Helpers.Header(_window, "DPS METER"));
 
             // Button row
             var buttonRow = new FigmaFrame(default)
@@ -53,9 +42,9 @@ namespace DPSMeter
                 Gap = 4f
             }.Size(FigmaSize.Hug, FigmaSize.Hug);
 
-            buttonRow.Add(IconButton("GearIcon.png", 24f, OpenConfig));
-            buttonRow.Add(IconButton("MinimizeIcon.png", 24f, MinimizeWindow));
-            buttonRow.Add(IconButton("CloseIcon.png", 24f, CloseWindow));
+            buttonRow.Add(Helpers.IconButton("GearIcon.png", 24f, OpenConfig));
+            buttonRow.Add(Helpers.IconButton("MinimizeIcon.png", 24f, MinimizeWindow));
+            buttonRow.Add(Helpers.IconButton("CloseIcon.png", 24f, CloseWindow));
 
             header.Add(buttonRow);
 
@@ -102,10 +91,10 @@ namespace DPSMeter
             }.Size(FigmaSize.Fill, FigmaSize.Hug));
 
             // Primary readout DPS text
-            var primaryReadoutText = primaryReadoutTextFrame.Add(new FigmaText(default, Fmt(Tracker.Dps), HeaderStyle(TextAnchor.MiddleCenter, Primary, 50)).Size(FigmaSize.Fill, FigmaSize.Hug));
+            var primaryReadoutText = primaryReadoutTextFrame.Add(new FigmaText(default, Helpers.Fmt(Tracker.Dps), Helpers.HeaderStyle(TextAnchor.MiddleCenter, Primary, 50)).Size(FigmaSize.Fill, FigmaSize.Hug));
 
             // peak DPS text
-            var PeakText = primaryReadout.Add(new FigmaText(default, $"Peak: {Gui.Colored(Fmt(Tracker.PeakDps), Primary)}", HeaderStyle(TextAnchor.MiddleCenter, Text, 20, FontStyle.Normal) ) { RichText = true,  }.Size(FigmaSize.Fill, FigmaSize.Hug));
+            var PeakText = primaryReadout.Add(new FigmaText(default, $"Peak: {Gui.Colored(Helpers.Fmt(Tracker.PeakDps), Primary)}", Helpers.HeaderStyle(TextAnchor.MiddleCenter, Text, 20, FontStyle.Normal) ) { RichText = true,  }.Size(FigmaSize.Fill, FigmaSize.Hug));
 
             // ButtonContainer frame
             var buttonContainer = mainBodyLeft.Add(new FigmaFrame(default)
@@ -158,9 +147,9 @@ namespace DPSMeter
             // Info dictionary for the right side of the main body
             Dictionary<string, string> infoDict = new()
             {
-                { "Total", Fmt(Tracker.Total)},
-                { "Highest hit", Fmt(Tracker.Highest)},
-                { "Avg hit", Fmt(Tracker.Total / Math.Max(1, Tracker.Hits)) },
+                { "Total", Helpers.Fmt(Tracker.Total)},
+                { "Highest hit", Helpers.Fmt(Tracker.Highest)},
+                { "Avg hit", Helpers.Fmt(Tracker.Total / Math.Max(1, Tracker.Hits)) },
                 { "Hits", $"{Tracker.Hits} | {(float)Tracker.Hits / Math.Max(1, Tracker.Elapsed):0.#}/s" },
                 { "Crit rate", $"{(float)Tracker.Crits / Math.Max(1, Tracker.Hits) * 100:0.#}%" }
             };
@@ -320,7 +309,7 @@ namespace DPSMeter
                         }.Size(FigmaSize.Fill, FigmaSize.Hug));
 
 
-                        barsInfoData.Add(new FigmaText(default, Fmt(amount), 12, Primary){ 
+                        barsInfoData.Add(new FigmaText(default, Helpers.Fmt(amount), 12, Primary){ 
                             Bounds = new Rect(0f, 0f, 50f, 12f), 
                             Align = TextAnchor.MiddleRight 
                         }.Size(FigmaSize.Fixed, FigmaSize.Hug));
@@ -352,9 +341,9 @@ namespace DPSMeter
             root.Render(new Rect(0f, 0f, _window.Rect.width, _window.Rect.height));
         }
 
-        static void MinimizeWindow()
+        void MinimizeWindow()
         {
-            // Implement the logic to minimize the window here
+            _meterWindow.ReplaceAdvancedBreakdown<AdvancedBreakdown>();
         }
 
         static void CloseWindow()
@@ -389,21 +378,7 @@ namespace DPSMeter
         }
 
         // Borderless button that only shows an icon, dimmed until hovered.
-        static FigmaFrame IconButton(string icon, float size, Action clicked)
-        {
-            var button = new FigmaFrame(default)
-            {
-                Layout = FigmaLayout.Horizontal,
-                MainAlign = FigmaAlign.Center,
-                CrossAlign = FigmaAlign.Center,
-                Clicked = clicked,
-                Tint = Dimmed,
-                HoverTint = Color.white,
-                PressedTint = Pressed,
-            }.Size(FigmaSize.Hug, FigmaSize.Hug);
-            button.Add(new FigmaImage(new Rect(0f, 0f, size, size), Gui.Icon(icon)));
-            return button;
-        }
+
 
         // Progress bar built from frames: outline > track > one frame per segment, sized by FillWeight.
         // value is the filled fraction of the track; segments are split proportionally over the filled part.
@@ -507,27 +482,6 @@ namespace DPSMeter
             return frame;
         }
 
-        static string Fmt(double v)
-        {
-            if (v >= 1e18) return (v / 1e18).ToString("0.##") + "Qi";
-            if (v >= 1e15) return (v / 1e15).ToString("0.##") + "Qa";
-            if (v >= 1e12) return (v / 1e12).ToString("0.##") + "T";
-            if (v >= 1e9) return (v / 1e9).ToString("0.##") + "B";
-            if (v >= 1e6) return (v / 1e6).ToString("0.##") + "M";
-            if (v >= 1e3) return (v / 1e3).ToString("0.##") + "K";
-            return v.ToString("0");
-        }
 
-        static GUIStyle HeaderStyle(TextAnchor anchor, Color textColor, int fontSize = 50, FontStyle fontStyle = FontStyle.Bold)
-        {
-            var style = new GUIStyle
-            {
-                alignment = anchor,
-                normal = { textColor = textColor },
-                fontSize = fontSize,
-                fontStyle = fontStyle
-            };
-            return style;
-        }
     }
 }
