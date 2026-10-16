@@ -8,7 +8,6 @@ namespace DPSMeter
 {
     internal class MeterWindowDesignV2
     {
-        static string SelectedBreakdownTab = "Skill";
         readonly MeterWindow _meterWindow;
         readonly FigmaWindow _window;
         FigmaFrame root;
@@ -31,7 +30,7 @@ namespace DPSMeter
                 Gap = 0f
             };
 
-            
+
             var header = root.Add(Helpers.Header(_window, "DPS METER"));
 
             // Button row
@@ -94,7 +93,7 @@ namespace DPSMeter
             var primaryReadoutText = primaryReadoutTextFrame.Add(new FigmaText(default, Helpers.Fmt(Tracker.Dps), Helpers.HeaderStyle(TextAnchor.MiddleCenter, Primary, 50)).Size(FigmaSize.Fill, FigmaSize.Hug));
 
             // peak DPS text
-            var PeakText = primaryReadout.Add(new FigmaText(default, $"Peak: {Gui.Colored(Helpers.Fmt(Tracker.PeakDps), Primary)}", Helpers.HeaderStyle(TextAnchor.MiddleCenter, Text, 20, FontStyle.Normal) ) { RichText = true,  }.Size(FigmaSize.Fill, FigmaSize.Hug));
+            var PeakText = primaryReadout.Add(new FigmaText(default, $"Peak: {Gui.Colored(Helpers.Fmt(Tracker.PeakDps), Primary)}", Helpers.HeaderStyle(TextAnchor.MiddleCenter, Text, 20, FontStyle.Normal)) { RichText = true, }.Size(FigmaSize.Fill, FigmaSize.Hug));
 
             // ButtonContainer frame
             var buttonContainer = mainBodyLeft.Add(new FigmaFrame(default)
@@ -173,154 +172,165 @@ namespace DPSMeter
                 infoFrame.Add(new FigmaText(default, kvp.Value, 16, Primary, TextAnchor.MiddleRight).Size(FigmaSize.Hug, FigmaSize.Hug));
             }
 
-            // Bottom section of the main body frame
-            var mainBodyBottom = root.Add(new FigmaFrame(default)
-            {
-                Layout = FigmaLayout.Vertical,
-                Fill = Background,
-                MainAlign = FigmaAlign.Center,
-                CrossAlign = FigmaAlign.Center,
-                CornerRadii = new Vector4(0f, 0f, 10f, 10f),
-                Padding = new Vector4(10f, 10f, 10f, 10f),
-                Gap = 10f,
-                Bounds = new Rect(0f, 0f, _window.Rect.width, 208f),
-            }.Size(FigmaSize.Fill, FigmaSize.Hug));
 
-            var mainBodyBottomButtonHeader = mainBodyBottom.Add(new FigmaFrame(default)
-            {
-                Layout = FigmaLayout.Horizontal,
-                Fill = Background,
-                MainAlign = FigmaAlign.Start,
-                CrossAlign = FigmaAlign.Start,
-                Padding = new Vector4(0f, 0f, 0f, 0f),
-                Gap = 10f,
-                Bounds = new Rect(0f, 0f, _window.Rect.width, 35f),
-            }.Size(FigmaSize.Fill, FigmaSize.Fixed));
 
-            // breakdown tab buttons, the selected one is highlighted
-            mainBodyBottomButtonHeader.Add(Button("Skill", SelectedBreakdownTab == "Skill", 20, () => SelectedBreakdownTab = "Skill")
-                .Size(FigmaSize.Fill, FigmaSize.Fixed));
-            mainBodyBottomButtonHeader.Add(Button("Damage Type", SelectedBreakdownTab == "Damage Type", 20, () => SelectedBreakdownTab = "Damage Type")
-                .Size(FigmaSize.Fill, FigmaSize.Fixed));
+            // var mainBodyBottomButtonHeader = mainBodyBottom.Add(new FigmaFrame(default)
+            // {
+            //     Layout = FigmaLayout.Horizontal,
+            //     Fill = Background,
+            //     MainAlign = FigmaAlign.Start,
+            //     CrossAlign = FigmaAlign.Start,
+            //     Padding = new Vector4(0f, 0f, 0f, 0f),
+            //     Gap = 10f,
+            //     Bounds = new Rect(0f, 0f, _window.Rect.width, 35f),
+            // }.Size(FigmaSize.Fill, FigmaSize.Fixed));
 
-            var mainBodyBottomContent = mainBodyBottom.Add(new FigmaFrame(default)
-            {
-                Layout = FigmaLayout.Horizontal,
-                Fill = Background,
-                MainAlign = FigmaAlign.Start,
-                CrossAlign = FigmaAlign.Start,
-                Padding = new Vector4(0f, 0f, 0f, 0f),
-                Gap = 10f,
-                Bounds = new Rect(0f, 0f, _window.Rect.width, 143f),
-            }.Size(FigmaSize.Fill, FigmaSize.Hug));
+            // // breakdown tab buttons, the selected one is highlighted
+            // mainBodyBottomButtonHeader.Add(Button("Skill", SelectedBreakdownTab == "Skill", 20, () => SelectedBreakdownTab = "Skill")
+            //     .Size(FigmaSize.Fill, FigmaSize.Fixed));
+            // mainBodyBottomButtonHeader.Add(Button("Damage Type", SelectedBreakdownTab == "Damage Type", 20, () => SelectedBreakdownTab = "Damage Type")
+            //     .Size(FigmaSize.Fill, FigmaSize.Fixed));
 
-            var mainBodyBottomBars = mainBodyBottomContent.Add(new FigmaFrame(default)
-            {
-                Layout = FigmaLayout.Vertical,
-                Fill = Background,
-                MainAlign = FigmaAlign.Start,
-                CrossAlign = FigmaAlign.Start,
-                Padding = new Vector4(0f, 0f, 0f, 0f),
-                Gap = 10f,
-                Bounds = new Rect(0f, 0f, _window.Rect.width, 208f),
-            }.Size(FigmaSize.Fill, FigmaSize.Hug));
 
-            var mainBodyBottomBarsInfo = mainBodyBottomContent.Add(new FigmaFrame(default)
+            // add info bars for damage types. only display types with non-zero totals
+            if (Tracker.TypeTotals.Max() != 0)
             {
-                Layout = FigmaLayout.Vertical,
-                Fill = Background,
-                MainAlign = FigmaAlign.Start,
-                CrossAlign = FigmaAlign.Start,
-                Padding = new Vector4(0f, 0f, 0f, 0f),
-                Gap = 0f,
-                Bounds = new Rect(0f, 0f, 130, _window.Rect.height),
-            }.Size(FigmaSize.Hug, FigmaSize.Fill));
-
-            var mainBodyBottomBarsInfoHeader = mainBodyBottomBarsInfo.Add(new FigmaFrame(default)
-            {
-                Layout = FigmaLayout.Horizontal,
-                Fill = Background,
-                MainAlign = FigmaAlign.End,
-                CrossAlign = FigmaAlign.Center,
-                Padding = new Vector4(0f, 0f, 0f, 0f),
-                Gap = 10f,
-                Bounds = new Rect(0f, 0f, 130f, 14f),
-            }.Size(FigmaSize.Fill, FigmaSize.Hug));
-
-            var mainBodyBottomBarsInfoData = mainBodyBottomBarsInfo.Add(new FigmaFrame(default)
-            {
-                Layout = FigmaLayout.Vertical,
-                Fill = Background,
-                MainAlign = FigmaAlign.End,
-                CrossAlign = FigmaAlign.Center,
-                Padding = new Vector4(0f, 0f, 0f, 0f),
-                Gap = 25f,
-                Bounds = new Rect(0f, 0f, 130f, 123f),
-            }.Size(FigmaSize.Fixed, FigmaSize.Hug));
-
-            if (SelectedBreakdownTab == "Skill")
-            {
-                var skills = Tracker.Skills.OrderByDescending(skill => skill.Value.Total).Take(4).ToList();
-                if (skills.Count == 0)
+                // Bottom section of the main body frame
+                var mainBodyBottom = root.Add(new FigmaFrame(default)
                 {
-                    mainBodyBottomBars.Add(new FigmaText(default, "No skill damage recorded", 14, Text)
-                        .Size(FigmaSize.Hug, FigmaSize.Hug));
-                }
-                else
+                    Layout = FigmaLayout.Vertical,
+                    Fill = Background,
+                    MainAlign = FigmaAlign.Center,
+                    CrossAlign = FigmaAlign.Center,
+                    CornerRadii = new Vector4(0f, 0f, 10f, 10f),
+                    Padding = new Vector4(10f, 10f, 10f, 10f),
+                    Gap = 10f,
+                    Bounds = new Rect(0f, 0f, _window.Rect.width, 208f),
+                }.Size(FigmaSize.Fill, FigmaSize.Hug));
+
+                var mainBodyBottomBreakdownHeader = mainBodyBottom.Add(new FigmaFrame(default)
                 {
-                    // add info bars for each skill.
+                    Layout = FigmaLayout.Horizontal,
+                    Fill = Background,
+                    MainAlign = FigmaAlign.Start,
+                    CrossAlign = FigmaAlign.SpaceBetween,
+                    BorderWidths = new Vector4(0f, 0f, 0f, 1f),
+                    Border = Primary,
+                    Padding = new Vector4(0f, 5f, 0f, 5f),
+                }.Size(FigmaSize.Fill, FigmaSize.Hug));
+
+                mainBodyBottomBreakdownHeader.Add(new FigmaText(default, "Breakdown", 16, Primary, TextAnchor.LowerLeft)
+                    .Size(FigmaSize.Fill, FigmaSize.Hug));
+
+                mainBodyBottomBreakdownHeader.Add(Helpers.IconButton("AdvancedBreakdown.png", 20, OpenAdvancedBreakdown)
+                .Size(FigmaSize.Hug, FigmaSize.Hug));
+
+                var mainBodyBottomContent = mainBodyBottom.Add(new FigmaFrame(default)
+                {
+                    Layout = FigmaLayout.Horizontal,
+                    Fill = Background,
+                    MainAlign = FigmaAlign.Start,
+                    CrossAlign = FigmaAlign.Start,
+                    Padding = new Vector4(0f, 0f, 0f, 0f),
+                    Gap = 10f,
+                    Bounds = new Rect(0f, 0f, _window.Rect.width, 143f),
+                }.Size(FigmaSize.Fill, FigmaSize.Hug));
+
+                var mainBodyBottomBars = mainBodyBottomContent.Add(new FigmaFrame(default)
+                {
+                    Layout = FigmaLayout.Vertical,
+                    Fill = Background,
+                    MainAlign = FigmaAlign.Start,
+                    CrossAlign = FigmaAlign.Start,
+                    Padding = new Vector4(0f, 0f, 0f, 0f),
+                    Gap = 10f,
+                    Bounds = new Rect(0f, 0f, _window.Rect.width, 208f),
+                }.Size(FigmaSize.Fill, FigmaSize.Hug));
+
+                var mainBodyBottomBarsInfo = mainBodyBottomContent.Add(new FigmaFrame(default)
+                {
+                    Layout = FigmaLayout.Vertical,
+                    Fill = Background,
+                    MainAlign = FigmaAlign.Start,
+                    CrossAlign = FigmaAlign.Start,
+                    Padding = new Vector4(0f, 0f, 0f, 0f),
+                    Gap = 0f,
+                    Bounds = new Rect(0f, 0f, 130, _window.Rect.height),
+                }.Size(FigmaSize.Hug, FigmaSize.Fill));
+
+                var mainBodyBottomBarsInfoHeader = mainBodyBottomBarsInfo.Add(new FigmaFrame(default)
+                {
+                    Layout = FigmaLayout.Horizontal,
+                    Fill = Background,
+                    MainAlign = FigmaAlign.End,
+                    CrossAlign = FigmaAlign.Center,
+                    Padding = new Vector4(0f, 0f, 0f, 0f),
+                    Gap = 10f,
+                    Bounds = new Rect(0f, 0f, 130f, 14f),
+                }.Size(FigmaSize.Fill, FigmaSize.Hug));
+
+                var mainBodyBottomBarsInfoData = mainBodyBottomBarsInfo.Add(new FigmaFrame(default)
+                {
+                    Layout = FigmaLayout.Vertical,
+                    Fill = Background,
+                    MainAlign = FigmaAlign.End,
+                    CrossAlign = FigmaAlign.Center,
+                    Padding = new Vector4(0f, 0f, 0f, 0f),
+                    Gap = 25f,
+                    Bounds = new Rect(0f, 0f, 130f, 123f),
+                }.Size(FigmaSize.Fixed, FigmaSize.Hug));
+
+                // add info bars for each damage type with non-zero totals
+                double sum = Tracker.TypeTotals.Sum();
+
+                mainBodyBottomBarsInfoHeader.Add(new FigmaText(default, "Sum", 14, Text).Size(FigmaSize.Hug, FigmaSize.Hug));
+                mainBodyBottomBarsInfoHeader.Add(new FigmaText(default, "Distribution", 14, Text).Size(FigmaSize.Hug, FigmaSize.Hug));
+
+                // sort so that damage types with higher totals appear first
+                var sortedIndices = Enumerable.Range(0, Tracker.TypeCount)
+                    .OrderByDescending(i => Tracker.TypeTotals[i])
+                    .ToList();
+
+                for (int idx = 0; idx < sortedIndices.Count; idx++)
+                {
+                    int i = sortedIndices[idx];
+                    double amount = Tracker.TypeTotals[i];
+                    if (amount <= 0) continue;
+
+                    // One segment filling the whole bar means no segmentation
+                    mainBodyBottomBars.Add(ProgressBar((float)(amount / sum), new[] { 1.0 }, new[] { Tracker.TypeColors[i] }, Tracker.TypeNames[i], Tracker.IconsForType(i)));
+
+
+                    var barsInfoData = mainBodyBottomBarsInfoData.Add(new FigmaFrame(default)
+                    {
+                        Layout = FigmaLayout.Horizontal,
+                        Fill = Background,
+                        MainAlign = FigmaAlign.End,
+                        CrossAlign = FigmaAlign.Center,
+                        Bounds = new Rect(0f, 0f, 130f, 12f),
+                        Gap = 10f,
+                        Padding = new Vector4(0f, 0f, 0f, 0f),
+                    }.Size(FigmaSize.Fill, FigmaSize.Hug));
+
+
+                    barsInfoData.Add(new FigmaText(default, Helpers.Fmt(amount), 12, Primary)
+                    {
+                        Bounds = new Rect(0f, 0f, 50f, 12f),
+                        Align = TextAnchor.MiddleRight
+                    }.Size(FigmaSize.Fixed, FigmaSize.Hug));
+
+                    barsInfoData.Add(new FigmaText(default, (amount / sum).ToString("P1"), 12, Primary)
+                    {
+                        Bounds = new Rect(0f, 0f, 70f, 12f),
+                        Align = TextAnchor.MiddleRight
+                    }.Size(FigmaSize.Fixed, FigmaSize.Hug));
                 }
             }
-            else
-            {
-                // add info abrs for damage types. only display types with non-zero totals
-                if (Tracker.TypeTotals.Max() != 0)
-                {
-                    // add info bars for each damage type with non-zero totals
-                    double sum = Tracker.TypeTotals.Sum();
+        }
 
-                    mainBodyBottomBarsInfoHeader.Add(new FigmaText(default, "Sum", 14, Text).Size(FigmaSize.Hug, FigmaSize.Hug));
-                    mainBodyBottomBarsInfoHeader.Add(new FigmaText(default, "Distribution", 14, Text).Size(FigmaSize.Hug, FigmaSize.Hug));
-
-                    // sort so that damage types with higher totals appear first
-                    var sortedIndices = Enumerable.Range(0, Tracker.TypeCount)
-                        .OrderByDescending(i => Tracker.TypeTotals[i])
-                        .ToList();
-
-                    for (int idx = 0; idx < sortedIndices.Count; idx++)
-                    {
-                        int i = sortedIndices[idx];
-                        double amount = Tracker.TypeTotals[i];
-                        if (amount <= 0) continue;
-
-                        // One segment filling the whole bar means no segmentation
-                        mainBodyBottomBars.Add(ProgressBar((float)(amount / sum), new[] { 1.0 }, new[] { Tracker.TypeColors[i] } , Tracker.TypeNames[i], Tracker.IconsForType(i)));
-
-
-                        var barsInfoData = mainBodyBottomBarsInfoData.Add(new FigmaFrame(default) 
-                        {
-                            Layout = FigmaLayout.Horizontal,
-                            Fill = Background,
-                            MainAlign = FigmaAlign.End,
-                            CrossAlign = FigmaAlign.Center,
-                            Bounds = new Rect(0f, 0f, 130f, 12f),
-                            Gap = 10f,
-                            Padding = new Vector4(0f, 0f, 0f, 0f),
-                        }.Size(FigmaSize.Fill, FigmaSize.Hug));
-
-
-                        barsInfoData.Add(new FigmaText(default, Helpers.Fmt(amount), 12, Primary){ 
-                            Bounds = new Rect(0f, 0f, 50f, 12f), 
-                            Align = TextAnchor.MiddleRight 
-                        }.Size(FigmaSize.Fixed, FigmaSize.Hug));
-                        
-                        barsInfoData.Add(new FigmaText(default, (amount / sum).ToString("P1"), 12, Primary){ 
-                            Bounds = new Rect(0f, 0f, 70f, 12f), 
-                            Align = TextAnchor.MiddleRight 
-                        }.Size(FigmaSize.Fixed, FigmaSize.Hug));
-                    }
-                }
-            }  
+        private void OpenAdvancedBreakdown()
+        {
+            _meterWindow.ReplaceAdvancedBreakdown<AdvancedBreakdown>();
         }
 
         static void OpenConfig()
@@ -334,7 +344,7 @@ namespace DPSMeter
             FigmaFrame.Wireframe = !FigmaFrame.Wireframe;
             Plugin.DebugWireframe.Value = FigmaFrame.Wireframe;
         }
-        
+
         public void Render()
         {
             _window.FitTo(root);
@@ -343,7 +353,7 @@ namespace DPSMeter
 
         void MinimizeWindow()
         {
-            _meterWindow.ReplaceAdvancedBreakdown<AdvancedBreakdown>();
+            _meterWindow.Toggle();
         }
 
         static void CloseWindow()
@@ -393,7 +403,7 @@ namespace DPSMeter
                 MainAlign = FigmaAlign.Start,
                 CrossAlign = FigmaAlign.Start,
             }.Size(FigmaSize.Fill, FigmaSize.Hug);
-            
+
 
             FigmaFrame labelHeader = frame.Add(new FigmaFrame(default)
             {
