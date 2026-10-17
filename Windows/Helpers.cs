@@ -45,7 +45,7 @@ namespace DPSMeter
                 Layout = FigmaLayout.Horizontal,
                 Fill = Accent,
                 MainAlign = FigmaAlign.SpaceBetween,   // title left, buttons right
-                CrossAlign = FigmaAlign.Center,        
+                CrossAlign = FigmaAlign.Center,
                 CornerRadii = new Vector4(10f, 10f, 0f, 0f),
                 Padding = new Vector4(10f, 0f, 10f, 0f),
                 Bounds = new Rect(0f, 0f, _window.Rect.width, 40f),
@@ -75,6 +75,41 @@ namespace DPSMeter
             button.Add(new FigmaImage(new Rect(0f, 0f, size, size), Gui.Icon(icon)));
             return button;
         }
-        
+
+        public static FigmaFrame IconButton(Sprite icon, float size, Action clicked)
+        {
+            var button = new FigmaFrame(default)
+            {
+                Layout = FigmaLayout.Horizontal,
+                MainAlign = FigmaAlign.Center,
+                CrossAlign = FigmaAlign.Center,
+                Clicked = clicked,
+                HoverTint = Dimmed,
+                PressedTint = Pressed,
+            }.Size(FigmaSize.Hug, FigmaSize.Hug);
+            button.Add(new FigmaImage(new Rect(0f, 0f, size, size), icon));
+            return button;
+        }
+
+        static FigmaFrame Button(string text, bool selected, int fontSize, Action clicked)
+        {
+            var border = selected ? Primary : Secondary;
+            var button = new FigmaFrame(new Rect(0f, 0f, 0f, 30f))
+            {
+                Layout = FigmaLayout.Vertical,
+                MainAlign = FigmaAlign.Center,
+                CrossAlign = FigmaAlign.Center,
+                Padding = new Vector4(0f, 0f, 0f, 0f),
+                Border = border,
+                BorderWidths = new Vector4(0f, 0f, 0f, 1f),
+                //CornerRadius = 2f,
+                Gap = 20f,
+                Fill = Background,
+                Clicked = clicked,
+            }.Size(FigmaSize.Hug, FigmaSize.Hug);
+            button.Add(new FigmaText(default, text, fontSize, border, TextAnchor.MiddleCenter).Size(FigmaSize.Hug, FigmaSize.Hug));
+            return button;
+        }
+
     }
 }
