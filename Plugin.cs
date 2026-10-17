@@ -33,7 +33,15 @@ namespace DPSMeter
             FigmaFrame.Wireframe = DebugWireframe.Value;
             Gui.LinearTextFix = LinearTextFix.Value;
             Gui.Warn = Logger.LogWarning;
-            FigmaText.DefaultFont = BundledFont.Load();
+            try
+            {
+                BundledFont.Load();
+                FigmaText.DefaultFont = BundledFont.Light;
+            }
+            catch (System.Exception e)
+            {
+                Logger.LogError($"Could not load the bundled font, using the default font: {e}");
+            }
 
             var go = new GameObject("DPSMeter");
             DontDestroyOnLoad(go);
