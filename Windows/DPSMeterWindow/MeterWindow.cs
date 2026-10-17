@@ -6,12 +6,15 @@ namespace DPSMeter.Windows.DPSMeterWindow
 {
     internal class MeterWindow : MonoBehaviour
     {
-        const float DefaultWidth = 459f;
-        const float DefaultHeight = 210f;
+        const float DefaultWidth = 1f;
+        const float DefaultHeight = 1f;
 
         FigmaWindow _window;
         private bool Visible { get; set; } = true;
         public bool GlobalVisible { get; set; } = true;
+
+        // Lives here because the design is rebuilt every frame.
+        public bool Minimal { get; set; }
 
         public void Toggle() => Visible = !Visible;
 
@@ -49,7 +52,7 @@ namespace DPSMeter.Windows.DPSMeterWindow
                     918273,
                     new Rect(20f, 200f, DefaultWidth, DefaultHeight),
                     new Vector2(DefaultWidth, DefaultHeight),
-                    Draw) { AutoHeight = true };
+                    Draw) { AutoHeight = true, AutoWidth = true };
             }
 
             _window.Render();
