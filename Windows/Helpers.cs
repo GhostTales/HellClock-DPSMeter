@@ -17,12 +17,12 @@ namespace DPSMeter
 
         public static string Fmt(double v)
         {
-            if (v >= 1e18) return (v / 1e18).ToString("0.##") + "Qi";
-            if (v >= 1e15) return (v / 1e15).ToString("0.##") + "Qa";
-            if (v >= 1e12) return (v / 1e12).ToString("0.##") + "T";
-            if (v >= 1e9) return (v / 1e9).ToString("0.##") + "B";
-            if (v >= 1e6) return (v / 1e6).ToString("0.##") + "M";
-            if (v >= 1e3) return (v / 1e3).ToString("0.##") + "K";
+            if (v >= 1e18) return (v / 1e18).ToString("0.00") + "Qi";
+            if (v >= 1e15) return (v / 1e15).ToString("0.00") + "Qa";
+            if (v >= 1e12) return (v / 1e12).ToString("0.00") + "T";
+            if (v >= 1e9) return (v / 1e9).ToString("0.00") + "B";
+            if (v >= 1e6) return (v / 1e6).ToString("0.00") + "M";
+            if (v >= 1e3) return (v / 1e3).ToString("0.00") + "K";
             return v.ToString("0");
         }
 
@@ -52,13 +52,15 @@ namespace DPSMeter
             }.Size(FigmaSize.Fill, FigmaSize.Fixed);
 
             // Header title
-            header.Add(new FigmaText(default, title, 16, Primary){ RichText = true }.Size(FigmaSize.Hug, FigmaSize.Hug));
+            var titleText = new FigmaText(default, title, 16, Primary) { RichText = true };
+            if (BundledFont.Medium != null) titleText.Font = BundledFont.Medium;
+            header.Add(titleText.Size(FigmaSize.Hug, FigmaSize.Hug));
 
             return header;
         }
 
-        static readonly Color Dimmed = new Color(0.85f, 0.85f, 0.85f, 1f);
-        static readonly Color Pressed = new Color(0.7f, 0.7f, 0.7f, 1f);
+        static readonly Color Dimmed = new(1f, 1f, 1f, 0.7f);
+        static readonly Color Pressed = new(1.1f, 1.1f, 1.1f, 1f);
         public static FigmaFrame IconButton(string icon, float size, Action clicked)
         {
             var button = new FigmaFrame(default)
@@ -67,8 +69,7 @@ namespace DPSMeter
                 MainAlign = FigmaAlign.Center,
                 CrossAlign = FigmaAlign.Center,
                 Clicked = clicked,
-                Tint = Dimmed,
-                HoverTint = Color.white,
+                HoverTint = Dimmed,
                 PressedTint = Pressed,
             }.Size(FigmaSize.Hug, FigmaSize.Hug);
             button.Add(new FigmaImage(new Rect(0f, 0f, size, size), Gui.Icon(icon)));
