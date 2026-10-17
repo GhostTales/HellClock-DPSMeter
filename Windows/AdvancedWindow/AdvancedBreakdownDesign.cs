@@ -30,7 +30,7 @@ namespace DPSMeter.Windows.AdvancedWindow
             };
 
             // Design starts here.
-            var header = root.Add(Helpers.Header(_window, "ADVANCED BREAKDOWN"));
+            var header = root.Add(Helpers.Header(_window, "<cspace=0.3em>DPS METER</cspace> — Advanced Breakdown"));
 
             // Button row
             var buttonRow = new FigmaFrame(default)
