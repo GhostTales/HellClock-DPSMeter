@@ -1,6 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
-using System.Linq;
+using BepInEx;
 using UnityEngine;
 
 namespace DPSMeter
@@ -8,32 +9,47 @@ namespace DPSMeter
     internal static class BundledFont
     {
         const string ResourceName = "DPSMeter.Fonts.ibmplexfonts";
-        const string RegularFontName = "IBMPlexSansCondensed-Regular";
+        const string FontPrefix = "IBMPlexSansCondensed-";
         static AssetBundle _assetBundle;
+        static readonly Dictionary<string, Font> Fonts = new Dictionary<string, Font>();
 
-        public static Font Load()
+        public static Font Regular => Get("Regular");
+        public static Font Medium => Get("Medium");
+        public static Font Light => Get("Light");
+
+        /// <summary>Returns the bundled font face (e.g. "Medium"), or null if it is unavailable.</summary>
+        public static Font Get(string style) => Fonts.TryGetValue(FontPrefix + style, out var font) ? font : null;
+
+        // The game's stripped UnityEngine.AssetBundleModule only keeps the async API, so the
+        // blocking getters on the async requests are used to load synchronously.
+        public static void Load()
         {
-            _assetBundle ??= LoadAssetBundle();
+            _assetBundle ??= AssetBundle.LoadFromFileAsync(ExtractBundle()).assetBundle
+                ?? throw new InvalidOperationException("Unity could not load the IBM Plex font AssetBundle.");
 
-            var font = _assetBundle.LoadAllAssets<Font>()
-                .FirstOrDefault(asset => asset.name.Equals(RegularFontName, StringComparison.Ordinal));
-            if (font != null)
-                return font;
+            foreach (var asset in _assetBundle.LoadAllAssetsAsync(typeof(Font)).allAssets)
+            {
+                if (asset is Font font) Fonts[font.name] = font;
+            }
 
-            var assetNames = string.Join(", ", _assetBundle.GetAllAssetNames());
-            throw new InvalidOperationException(
-                $"The IBM Plex font bundle does not contain a Font asset named '{RegularFontName}'. Available assets: {assetNames}");
+            if (Regular == null)
+                throw new InvalidOperationException($"The font bundle has no '{FontPrefix}Regular' font. Fonts found: {string.Join(", ", Fonts.Keys)}");
         }
 
-        static AssetBundle LoadAssetBundle()
+        static string ExtractBundle()
         {
-            using var stream = typeof(BundledFont).Assembly.GetManifestResourceStream(ResourceName)
-                ?? throw new InvalidOperationException($"Embedded font bundle resource '{ResourceName}' was not found.");
-            using var bytes = new MemoryStream();
-            stream.CopyTo(bytes);
+            using var source = typeof(BundledFont).Assembly.GetManifestResourceStream(ResourceName)
+                ?? throw new InvalidOperationException($"Embedded resource '{ResourceName}' was not found.");
 
-            return AssetBundle.LoadFromMemory(bytes.ToArray())
-                ?? throw new InvalidOperationException("Unity could not load the embedded IBM Plex font AssetBundle.");
+            var directory = Path.Combine(Paths.CachePath, "DPSMeter");
+            var path = Path.Combine(directory, "ibmplexfonts");
+            if (File.Exists(path) && new FileInfo(path).Length == source.Length)
+                return path;
+
+            Directory.CreateDirectory(directory);
+            using var destination = File.Create(path);
+            source.CopyTo(destination);
+            return path;
         }
     }
 }
