@@ -1,0 +1,40 @@
+ManifestFileVersion: 0
+UnityVersion: 6000.0.60f1
+CRC: 1208846936
+Hashes:
+  AssetFileHash:
+    serializedVersion: 2
+    Hash: c4a523718d5bda141bde11a4a4050016
+  TypeTreeHash:
+    serializedVersion: 2
+    Hash: 7623a04346d220483f62bdfe72afea62
+  IncrementalBuildHash:
+    serializedVersion: 2
+    Hash: 7ea0553f2ca17d19215f4b0581f53192
+HashAppended: 0
+ClassTypes:
+- Class: 21
+  Script: {instanceID: 0}
+- Class: 28
+  Script: {instanceID: 0}
+- Class: 48
+  Script: {instanceID: 0}
+- Class: 128
+  Script: {instanceID: 0}
+SerializeReferenceClassIdentifiers: []
+Assets:
+- Assets/IBM_Plex_Sans_Condensed/IBMPlexSansCondensed-SemiBold.ttf
+- Assets/IBM_Plex_Sans_Condensed/IBMPlexSansCondensed-ExtraLight.ttf
+- Assets/IBM_Plex_Sans_Condensed/IBMPlexSansCondensed-Light.ttf
+- Assets/IBM_Plex_Sans_Condensed/IBMPlexSansCondensed-BoldItalic.ttf
+- Assets/IBM_Plex_Sans_Condensed/IBMPlexSansCondensed-MediumItalic.ttf
+- Assets/IBM_Plex_Sans_Condensed/IBMPlexSansCondensed-Medium.ttf
+- Assets/IBM_Plex_Sans_Condensed/IBMPlexSansCondensed-Thin.ttf
+- Assets/IBM_Plex_Sans_Condensed/IBMPlexSansCondensed-Regular.ttf
+- Assets/IBM_Plex_Sans_Condensed/IBMPlexSansCondensed-ExtraLightItalic.ttf
+- Assets/IBM_Plex_Sans_Condensed/IBMPlexSansCondensed-Italic.ttf
+- Assets/IBM_Plex_Sans_Condensed/IBMPlexSansCondensed-Bold.ttf
+- Assets/IBM_Plex_Sans_Condensed/IBMPlexSansCondensed-LightItalic.ttf
+- Assets/IBM_Plex_Sans_Condensed/IBMPlexSansCondensed-ThinItalic.ttf
+- Assets/IBM_Plex_Sans_Condensed/IBMPlexSansCondensed-SemiBoldItalic.ttf
+Dependencies: []
