@@ -52,7 +52,7 @@ namespace DPSMeter
             }.Size(FigmaSize.Fill, FigmaSize.Fixed);
 
             // Header title
-            header.Add(new FigmaText(default, title, 16, Primary).Size(FigmaSize.Hug, FigmaSize.Hug));
+            header.Add(new FigmaText(default, title, 16, Primary){ RichText = true }.Size(FigmaSize.Hug, FigmaSize.Hug));
 
             return header;
         }
