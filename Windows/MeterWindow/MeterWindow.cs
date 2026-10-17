@@ -1,7 +1,8 @@
+using DPSMeter.Windows.AdvancedWindow;
 using FrameUI;
 using UnityEngine;
 
-namespace DPSMeter
+namespace DPSMeter.Windows.MeterWindow
 {
     internal class MeterWindow : MonoBehaviour
     {

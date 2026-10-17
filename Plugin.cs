@@ -2,6 +2,7 @@ using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using BepInEx.Unity.Mono;
+using DPSMeter.Windows.MeterWindow;
 using FrameUI;
 using HarmonyLib;
 using UnityEngine;

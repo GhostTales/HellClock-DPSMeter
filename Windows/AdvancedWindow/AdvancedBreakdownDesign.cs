@@ -2,7 +2,7 @@ using System;
 using FrameUI;
 using UnityEngine;
 
-namespace DPSMeter
+namespace DPSMeter.Windows.AdvancedWindow
 {
     internal class AdvancedBreakdownDesign
     {

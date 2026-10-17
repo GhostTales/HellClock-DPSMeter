@@ -1,7 +1,7 @@
 using FrameUI;
 using UnityEngine;
 
-namespace DPSMeter
+namespace DPSMeter.Windows.AdvancedWindow
 {
     internal class AdvancedBreakdown : MonoBehaviour
     {

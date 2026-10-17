@@ -1,10 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DPSMeter.Windows.AdvancedWindow;
 using FrameUI;
 using UnityEngine;
 
-namespace DPSMeter
+namespace DPSMeter.Windows.MeterWindow
 {
     internal class MeterWindowDesignV2
     {

@@ -45,7 +45,7 @@ namespace DPSMeter
                 Layout = FigmaLayout.Horizontal,
                 Fill = Accent,
                 MainAlign = FigmaAlign.SpaceBetween,   // title left, buttons right
-                CrossAlign = FigmaAlign.Center,        // vertically centred
+                CrossAlign = FigmaAlign.Center,        
                 CornerRadii = new Vector4(10f, 10f, 0f, 0f),
                 Padding = new Vector4(10f, 0f, 10f, 0f),
                 Bounds = new Rect(0f, 0f, _window.Rect.width, 40f),
