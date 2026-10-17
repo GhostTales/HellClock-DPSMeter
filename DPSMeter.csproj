@@ -30,6 +30,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Textures/*.png" LogicalName="Textures.%(Filename)%(Extension)" />
+    <Content Include="Fonts/**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <!-- Add your local game DLL references in a SEPARATE ItemGroup at the bottom -->

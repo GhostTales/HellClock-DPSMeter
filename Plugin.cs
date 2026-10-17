@@ -12,6 +12,8 @@ namespace DPSMeter
     [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
     public class Plugin : BaseUnityPlugin
     {
+        const string FontFamily = "IBM Plex Sans Condensed";
+
         internal static new ManualLogSource Logger;
         internal static ConfigEntry<KeyCode> ToggleKey;
         internal static ConfigEntry<KeyCode> ResetKey;
@@ -33,6 +35,7 @@ namespace DPSMeter
             FigmaFrame.Wireframe = DebugWireframe.Value;
             Gui.LinearTextFix = LinearTextFix.Value;
             Gui.Warn = Logger.LogWarning;
+            FigmaText.DefaultFont = Font.CreateDynamicFontFromOSFont(FontFamily, 16);
 
             var go = new GameObject("DPSMeter");
             DontDestroyOnLoad(go);
