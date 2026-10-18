@@ -58,7 +58,7 @@ namespace DPSMeter.Windows.DPSMeterWindow
 
 
             FigmaFrame header;
-            if (SelectedSkill != string.Empty)
+            if (SelectedSkill != string.Empty && !Minimal)
                 header = root.Add(Helpers.Header(_window, $"<cspace=0.3em>DPS METER — </cspace><cspace=0.15em>{SelectedSkill}</cspace>"));
             else
                 header = root.Add(Helpers.Header(_window, "<cspace=0.3em>DPS METER</cspace>"));
