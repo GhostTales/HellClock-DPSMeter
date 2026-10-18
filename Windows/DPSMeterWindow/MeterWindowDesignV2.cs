@@ -447,13 +447,6 @@ namespace DPSMeter.Windows.DPSMeterWindow
             }
             // icons for the progress bar, if provided
 
-            Plugin.Logger.LogInfo($"all skills and icons: {string.Join(", ", icons.Select(i => i.Key))}");
-
-            foreach (var skill in icons)
-            {
-                Plugin.Logger.LogInfo($"icon key: {skill.Key}, icon value: {skill.Value}");
-            }
-
             if (icons != null)
             {
                 foreach (var skill in icons)
