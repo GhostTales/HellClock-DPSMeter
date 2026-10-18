@@ -106,14 +106,14 @@ namespace DPSMeter
             }
         }
 
-        // Icons of the skills that dealt damage of this type, biggest contributor first. Skills without an icon are skipped.
-        public static List<Sprite> IconsForType(int type, int max = int.MaxValue)
+        // Name and icon of the skills that dealt damage of this type, biggest contributor first. Skills without an icon are skipped.
+        public static List<KeyValuePair<string, Sprite>> IconsForType(int type, int max = int.MaxValue)
         {
-            var icons = new List<Sprite>();
+            var icons = new List<KeyValuePair<string, Sprite>>();
             foreach (var kv in Skills.OrderByDescending(s => s.Value.ByType[type]))
             {
                 if (kv.Value.ByType[type] <= 0) break;
-                if (kv.Value.Icon != null && !icons.Contains(kv.Value.Icon)) icons.Add(kv.Value.Icon);
+                if (kv.Value.Icon != null) icons.Add(new KeyValuePair<string, Sprite>(kv.Key, kv.Value.Icon));
                 if (icons.Count >= max) break;
             }
             return icons;
