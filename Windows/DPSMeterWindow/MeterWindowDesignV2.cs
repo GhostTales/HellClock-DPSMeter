@@ -71,9 +71,16 @@ namespace DPSMeter.Windows.DPSMeterWindow
                 Gap = 4f
             }.Size(FigmaSize.Hug, FigmaSize.Hug);
 
-            buttonRow.Add(Helpers.IconButton("GearIcon.png", 24f, OpenConfig));
-            buttonRow.Add(Helpers.IconButton("MinimizeIcon.png", 24f, MinimizeWindow));
-            buttonRow.Add(Helpers.IconButton("CloseIcon.png", 24f, CloseWindow));
+            if (!Minimal)
+            {
+                buttonRow.Add(Helpers.IconButton("GearIcon.png", 24f, OpenConfig));
+                buttonRow.Add(Helpers.IconButton("BigToSmall.png", 24f, MinimizeWindow));
+                buttonRow.Add(Helpers.IconButton("CloseIcon.png", 24f, CloseWindow));
+            }
+            else
+            {
+                buttonRow.Add(Helpers.IconButton("SmallToBig.png", 24f, MinimizeWindow));
+            }
 
             header.Add(buttonRow);
 
@@ -97,6 +104,16 @@ namespace DPSMeter.Windows.DPSMeterWindow
                 Padding = new Vector4(10f, 0f, 0f, 0f),
                 Bounds = new Rect(0f, 0f, 266f, 150f),
             }.Size(FigmaSize.Fixed, FigmaSize.Fixed));
+
+            if (Minimal)
+            {
+                mainBody.Padding = new Vector4(0f, 0f, 0f, 0f);
+                mainBody.Bounds = new Rect(0f, 0f, _window.Rect.width, 112f);
+                mainBodyLeft.Bounds = new Rect(0f, 0f, 171f, 112f);
+                mainBodyLeft.Padding = new Vector4(10f, 0f, 10f, 10f);
+                mainBodyLeft.Gap = 5f;
+                
+            }
 
             // DPS Readout frame
             var primaryReadout = mainBodyLeft.Add(new FigmaFrame(default)
@@ -127,6 +144,11 @@ namespace DPSMeter.Windows.DPSMeterWindow
             // peak DPS text
             var PeakText = primaryReadout.Add(new FigmaText(default, $"Peak: {Gui.Colored(Helpers.Fmt(Tracker.PeakDps), Primary)}", Helpers.HeaderStyle(TextAnchor.UpperCenter, Text, 20, FontStyle.Normal)) { RichText = true, Font = BundledFont.Medium }.Size(FigmaSize.Fill, FigmaSize.Hug));
 
+            if (Minimal)
+            {
+                primaryReadoutText.FontSize = 38;
+                PeakText.FontSize = 14;
+            }
 
             // The whole frame is the reset button. It shows the elapsed time once a fight has started, otherwise a circular icon.
             var counterFrame = mainBodyLeft.Add(new FigmaFrame(default)
@@ -449,7 +471,7 @@ namespace DPSMeter.Windows.DPSMeterWindow
                     string skillName = skill.Key;
                     if (skill.Value == null) Plugin.Logger.LogWarning($"Icon for skill {skillName} is null.");
 
-                    labelHeader.Add(Helpers.IconButton(skill.Value, 16f, () => 
+                    labelHeader.Add(Helpers.IconButton(skill.Value, 16f, () =>
                     {
                         // clicking the selected skill again clears the selection
                         if (SelectedSkillKey == skillName)
