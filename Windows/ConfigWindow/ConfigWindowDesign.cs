@@ -30,7 +30,7 @@ namespace DPSMeter.Windows.ConfigWindow
             };
 
             // Design starts here.
-            var header = root.Add(Helpers.Header(_window, "<cspace=0.3em>DPS METER</cspace> — Config"));
+            var header = root.Add(Helpers.Header(_window, "<cspace=0.3em>DPS METER</cspace> — <cspace=0.15em>Config</cspace>"));
 
             // Button row
             var buttonRow = new FigmaFrame(default)
