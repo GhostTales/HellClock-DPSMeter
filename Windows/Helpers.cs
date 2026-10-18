@@ -76,7 +76,7 @@ namespace DPSMeter
             return button;
         }
 
-        public static FigmaFrame IconButton(Sprite icon, float size, Action clicked)
+        public static FigmaFrame IconButton(Sprite icon, float size, Action clicked, Action hovered = null)
         {
             var button = new FigmaFrame(default)
             {
@@ -84,6 +84,7 @@ namespace DPSMeter
                 MainAlign = FigmaAlign.Center,
                 CrossAlign = FigmaAlign.Center,
                 Clicked = clicked,
+                Hovered = hovered,
                 HoverTint = Dimmed,
                 PressedTint = Pressed,
             }.Size(FigmaSize.Hug, FigmaSize.Hug);
