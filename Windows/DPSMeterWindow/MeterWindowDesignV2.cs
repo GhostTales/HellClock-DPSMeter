@@ -31,12 +31,22 @@ namespace DPSMeter.Windows.DPSMeterWindow
         private static string SelectedSkill = string.Empty;
         private static string SelectedSkillKey = string.Empty; // raw tracker name of the selected skill
 
+        // Hovered is only raised while the pointer is over an icon, so the key is collected during a repaint
+        // and applied on the next one; it clears itself as soon as no icon reports a hover.
+        private static string HoveredSkillKey = string.Empty;
+        private static string PendingHoveredSkillKey = string.Empty;
+
         const float UnselectedOpacity = 0.25f;
 
         public MeterWindowDesignV2(MeterWindow meterWindow, FigmaWindow window)
         {
             _meterWindow = meterWindow;
             _window = window;
+            if (Event.current != null && Event.current.type == EventType.Repaint)
+            {
+                HoveredSkillKey = PendingHoveredSkillKey;
+                PendingHoveredSkillKey = string.Empty;
+            }
             root = new FigmaFrame(new Rect(0f, 0f, _window.Rect.width, _window.Rect.height))
             {
                 Fill = Background,
@@ -259,7 +269,7 @@ namespace DPSMeter.Windows.DPSMeterWindow
                         MainAlign = FigmaAlign.Start,
                         CrossAlign = FigmaAlign.Start,
                         Padding = new Vector4(0f, 0f, 0f, 0f),
-                        Gap = 10f,
+                        Gap = 5f,
                         Bounds = new Rect(0f, 0f, _window.Rect.width, 208f),
                     }.Size(FigmaSize.Fill, FigmaSize.Hug));
 
@@ -270,7 +280,7 @@ namespace DPSMeter.Windows.DPSMeterWindow
                         MainAlign = FigmaAlign.Start,
                         CrossAlign = FigmaAlign.Start,
                         Padding = new Vector4(0f, 0f, 0f, 0f),
-                        Gap = 0f,
+                        Gap = 5f,
                         Bounds = new Rect(0f, 0f, 130, _window.Rect.height),
                     }.Size(FigmaSize.Hug, FigmaSize.Fill));
 
@@ -283,7 +293,7 @@ namespace DPSMeter.Windows.DPSMeterWindow
                         Padding = new Vector4(0f, 0f, 0f, 0f),
                         Gap = 10f,
                         Bounds = new Rect(0f, 0f, 130f, 14f),
-                    }.Size(FigmaSize.Fill, FigmaSize.Hug));
+                    }.Size(FigmaSize.Fill, FigmaSize.Fixed));
 
                     var mainBodyBottomBarsInfoData = mainBodyBottomBarsInfo.Add(new FigmaFrame(default)
                     {
@@ -333,7 +343,7 @@ namespace DPSMeter.Windows.DPSMeterWindow
                             Bounds = new Rect(0f, 0f, 130f, 12f),
                             Gap = 10f,
                             Padding = new Vector4(0f, 0f, 0f, 0f),
-                        }.Size(FigmaSize.Fill, FigmaSize.Hug));
+                        }.Size(FigmaSize.Fill, FigmaSize.Fixed));
 
 
                         barsInfoData.Add(new FigmaText(default, Helpers.Fmt(amount), 12, Primary)
@@ -427,7 +437,7 @@ namespace DPSMeter.Windows.DPSMeterWindow
                 Bounds = new Rect(0f, 0f, 0f, 32f),
                 MainAlign = FigmaAlign.Start,
                 CrossAlign = FigmaAlign.Start,
-            }.Size(FigmaSize.Fill, FigmaSize.Hug);
+            }.Size(FigmaSize.Fill, FigmaSize.Fixed);
 
 
             FigmaFrame labelHeader = frame.Add(new FigmaFrame(default)
@@ -466,11 +476,8 @@ namespace DPSMeter.Windows.DPSMeterWindow
                         SelectedSkill = skills.TryGetValue(skillName, out var translated) ? translated : skillName;
                         Plugin.Logger.LogInfo($"Selected skill: {skillName}, translated: {SelectedSkill}, icon: {skill.Value}");
                     },
-                    hovered: () =>
-                    {
-                         // temporarily highlight segment for the hovered skill
-                         
-                    }));
+                    // temporarily highlight the segments of the hovered skill
+                    hovered: () => PendingHoveredSkillKey = skillName));
                 }
             }
 
@@ -513,12 +520,15 @@ namespace DPSMeter.Windows.DPSMeterWindow
             for (int i = 0; i < segments.Length && i < colors.Length; i++) total += Math.Max(0.0, segments[i]);
             float filled = total > 0 ? Mathf.Clamp01(value) : 0f;
 
+            // a hovered skill takes precedence over the selected one while the pointer is on its icon
+            string highlightKey = HoveredSkillKey != string.Empty ? HoveredSkillKey : SelectedSkillKey;
+
             for (int i = 0; i < segments.Length && i < colors.Length; i++)
             {
                 if (segments[i] <= 0) continue;
                 var color = colors[i];
-                // dim every segment but the selected skill's
-                if (SelectedSkillKey != string.Empty && (segmentKeys == null || i >= segmentKeys.Length || segmentKeys[i] != SelectedSkillKey))
+                // dim every segment but the highlighted skill's
+                if (highlightKey != string.Empty && (segmentKeys == null || i >= segmentKeys.Length || segmentKeys[i] != highlightKey))
                     color.a *= UnselectedOpacity;
                 track.Add(new FigmaFrame(default)
                 {
