@@ -24,6 +24,22 @@ namespace DPSMeter
         private void Awake()
         {
             Logger = base.Logger;
+            Logger.LogInfo("DPSMeter starting");
+            try
+            {
+                Initialize();
+            }
+            catch (System.Exception e)
+            {
+                Logger.LogError($"DPSMeter failed to initialize: {e}");
+            }
+        }
+
+        // Kept out of Awake so a missing dependency (e.g. FrameUI.dll) is thrown here and caught above,
+        // instead of failing silently while Awake is being JIT-compiled.
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void Initialize()
+        {
             ToggleKey = Config.Bind("Keys", "Toggle", KeyCode.F8, "Show/hide the meter");
             ResetKey = Config.Bind("Keys", "Reset", KeyCode.F9, "Reset the meter");
             IdleTimeout = Config.Bind("Meter", "IdleTimeout", 5f, "Seconds without dealing damage before the fight timer stops");
