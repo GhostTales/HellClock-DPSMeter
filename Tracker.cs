@@ -89,9 +89,10 @@ namespace DPSMeter
             if (Elapsed >= PeakMinSeconds) PeakDps = Math.Max(PeakDps, Dps);
             if (value > Highest) Highest = value;
 
-            string name = SkillName(d);
+            var relic = RelicOf(d);
+            string name = relic?.Name ?? SkillName(d);
             if (!Skills.TryGetValue(name, out var e)) Skills[name] = e = new Entry();
-            if (e.Icon == null) e.Icon = SourceIcon(d);
+            if (e.Icon == null) e.Icon = relic?.Icon ?? SourceIcon(d);
             if (Plugin.LogUniqueHits.Value) LogUniqueHit(d, name, e.Icon, value);
             e.Total += value;
             e.Hits++;
@@ -167,6 +168,18 @@ namespace DPSMeter
             }
             catch { }
             return null;
+        }
+
+        // Relic (or affix) whose effect or effect area dealt this damage. Damage over time keeps its status.
+        static RelicSources.Info RelicOf(DamageInstance d)
+        {
+            try
+            {
+                if (d.IsDamageOverTime) return null;
+                return RelicSources.FromEffect(EffectContextPatch.Current)
+                    ?? RelicSources.FromAreaName(d.DamageSourceInfo?.DamageSourceName);
+            }
+            catch { return null; }
         }
 
         static Sprite IconOf(int skillId) => skillId == -1 ? null : HellClock.Skill.SkillDefinition.GetSkillDefinition(skillId)?.Icon;
