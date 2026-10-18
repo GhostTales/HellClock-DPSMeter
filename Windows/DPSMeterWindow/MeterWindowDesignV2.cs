@@ -19,7 +19,16 @@ namespace DPSMeter.Windows.DPSMeterWindow
         static readonly Color Text = Helpers.Text;
         static readonly Color Secondary = Helpers.Secondary;
 
-        private bool Minimal { get; set; } = false;
+        static readonly Color Dimmed = new(1f, 1f, 1f, 0.7f);
+        static readonly Color Pressed = new(1.1f, 1.1f, 1.1f, 1f);
+
+        private bool Minimal
+        {
+            get => _meterWindow.Minimal;
+            set => _meterWindow.Minimal = value;
+        }
+
+        private static string SelectedSkill = string.Empty;
 
         public MeterWindowDesignV2(MeterWindow meterWindow, FigmaWindow window)
         {
@@ -34,7 +43,12 @@ namespace DPSMeter.Windows.DPSMeterWindow
             };
 
 
-            var header = root.Add(Helpers.Header(_window, "<cspace=0.3em>DPS METER</cspace>"));
+
+            FigmaFrame header;
+            if (SelectedSkill != string.Empty)
+                header = root.Add(Helpers.Header(_window, $"<cspace=0.3em>DPS METER — </cspace><cspace=0.15em>{SelectedSkill}</cspace>"));
+            else
+                header = root.Add(Helpers.Header(_window, "<cspace=0.3em>DPS METER</cspace>"));
 
             // Button row
             var buttonRow = new FigmaFrame(default)
@@ -55,12 +69,12 @@ namespace DPSMeter.Windows.DPSMeterWindow
                 Layout = FigmaLayout.Horizontal,
                 Fill = Background,
                 MainAlign = FigmaAlign.Start,
-                CrossAlign = FigmaAlign.Start,
+                CrossAlign = FigmaAlign.Center,
                 Padding = new Vector4(0f, 10f, 0f, 10f),
                 CornerRadii = new Vector4(0f, 0f, 10f, 10f),
                 Gap = 10f,
                 Bounds = new Rect(0f, 0f, _window.Rect.width, 170f),
-            }.Size(FigmaSize.Fill, FigmaSize.Hug));
+            }.Size(FigmaSize.Fill, FigmaSize.Fixed));
 
             var mainBodyLeft = mainBody.Add(new FigmaFrame(default)
             {
@@ -69,9 +83,9 @@ namespace DPSMeter.Windows.DPSMeterWindow
                 MainAlign = FigmaAlign.Center,
                 CrossAlign = FigmaAlign.Center,
                 Gap = 20f,
-                Padding = new Vector4(10f, 0f, 0f, 10f),
-                Bounds = new Rect(0f, 0f, 266f, _window.Rect.height),
-            }.Size(FigmaSize.Fixed, FigmaSize.Fill));
+                Padding = new Vector4(10f, 0f, 0f, 0f),
+                Bounds = new Rect(0f, 0f, 266f, 150f),
+            }.Size(FigmaSize.Fixed, FigmaSize.Fixed));
 
             // DPS Readout frame
             var primaryReadout = mainBodyLeft.Add(new FigmaFrame(default)
@@ -79,7 +93,8 @@ namespace DPSMeter.Windows.DPSMeterWindow
                 Layout = FigmaLayout.Vertical,
                 Fill = Background,
                 MainAlign = FigmaAlign.Start,
-                CrossAlign = FigmaAlign.Start,
+                CrossAlign = FigmaAlign.Center,
+                Bounds = new Rect(0f, 0f, 256f, 91f),
             }.Size(FigmaSize.Fill, FigmaSize.Hug));
 
             var primaryReadoutTextFrame = primaryReadout.Add(new FigmaFrame(default)
@@ -103,20 +118,9 @@ namespace DPSMeter.Windows.DPSMeterWindow
             // peak DPS text
             var PeakText = primaryReadout.Add(new FigmaText(default, $"Peak: {Gui.Colored(Helpers.Fmt(Tracker.PeakDps), Primary)}", Helpers.HeaderStyle(TextAnchor.UpperCenter, Text, 20, FontStyle.Normal)) { RichText = true, Font = BundledFont.Medium }.Size(FigmaSize.Fill, FigmaSize.Hug));
 
-            // ButtonContainer frame
-            var buttonContainer = mainBodyLeft.Add(new FigmaFrame(default)
-            {
-                Layout = FigmaLayout.Horizontal,
-                Fill = Background,
-                MainAlign = FigmaAlign.Center,
-                CrossAlign = FigmaAlign.Center,
-                Padding = new Vector4(0f, 0f, 0f, 0f),
-                Bounds = new Rect(0f, 0f, 126f, 30f),
-                Gap = 10f,
-            }.Size(FigmaSize.Hug, FigmaSize.Hug));
 
             // The whole frame is the reset button. It shows the elapsed time once a fight has started, otherwise a circular icon.
-            var counterFrame = buttonContainer.Add(new FigmaFrame(default)
+            var counterFrame = mainBodyLeft.Add(new FigmaFrame(default)
             {
                 Layout = FigmaLayout.Horizontal,
                 Fill = Background,
@@ -127,7 +131,7 @@ namespace DPSMeter.Windows.DPSMeterWindow
                 CornerRadius = 3f,
                 BorderWidth = 1f,
                 Clicked = Tracker.Reset,
-                HoverTint = Color.white,
+                HoverTint = Dimmed,
                 PressedTint = Pressed,
             }.Size(FigmaSize.Fixed, FigmaSize.Fixed));
 
@@ -149,8 +153,8 @@ namespace DPSMeter.Windows.DPSMeterWindow
                     CrossAlign = FigmaAlign.Start,
                     Padding = new Vector4(0f, 0f, 10f, 0f),
                     Gap = 5f,
-                    Bounds = new Rect(0f, 0f, _window.Rect.width, 150f),
-                }.Size(FigmaSize.Fill, FigmaSize.Hug));
+                    Bounds = new Rect(0f, 0f, 183f, 150f),
+                }.Size(FigmaSize.Fixed, FigmaSize.Fixed));
 
 
 
@@ -160,7 +164,7 @@ namespace DPSMeter.Windows.DPSMeterWindow
                     { "Total", Helpers.Fmt(Tracker.Total)},
                     { "Highest hit", Helpers.Fmt(Tracker.Highest)},
                     { "Avg hit", Helpers.Fmt(Tracker.Total / Math.Max(1, Tracker.Hits)) },
-                    { "Hits", $"{Tracker.Hits} | {(float)Tracker.Hits / Math.Max(1, Tracker.Elapsed):0.0}/s" },
+                    { "Hits", $"{Tracker.Hits} | {Tracker.Hits / Math.Max(1, Tracker.Elapsed):0.0}/s" },
                     { "Crit rate", $"{(float)Tracker.Crits / Math.Max(1, Tracker.Hits) * 100:0.#}%" }
                 };
 
@@ -174,7 +178,7 @@ namespace DPSMeter.Windows.DPSMeterWindow
                         MainAlign = FigmaAlign.SpaceBetween,
                         CrossAlign = FigmaAlign.Center,
                         Bounds = new Rect(0f, 0f, _window.Rect.width, 26f),
-                    }.Size(FigmaSize.Fill, FigmaSize.Hug));
+                    }.Size(FigmaSize.Fill, FigmaSize.Fixed));
 
                     // The value fills the rest of the row, and Align right-aligns the text inside it.
                     infoFrame.Add(new FigmaText(default, kvp.Key, 20, Text, TextAnchor.UpperLeft).Size(FigmaSize.Hug, FigmaSize.Hug));
@@ -361,8 +365,8 @@ namespace DPSMeter.Windows.DPSMeterWindow
             root.Render(new Rect(0f, 0f, _window.Rect.width, _window.Rect.height));
         }
 
-        void MinimizeWindow() 
-        { 
+        void MinimizeWindow()
+        {
             Minimal = !Minimal;
         }
 
@@ -371,38 +375,39 @@ namespace DPSMeter.Windows.DPSMeterWindow
             _meterWindow.Toggle();
         }
 
-        // ---- Widgets: plain frames with a click handler and per-state colours ----
 
-        static readonly Color Dimmed = new Color(0.85f, 0.85f, 0.85f, 1f);
-        static readonly Color Pressed = new Color(0.7f, 0.7f, 0.7f, 1f);
-
-        // Framed button with a text label. Selected buttons use the primary colour.
-        static FigmaFrame Button(string text, bool selected, int fontSize, Action clicked)
+        private static Dictionary<string, string> skills = new()
         {
-            var border = selected ? Primary : Secondary;
-            var button = new FigmaFrame(new Rect(0f, 0f, 0f, 30f))
-            {
-                Layout = FigmaLayout.Vertical,
-                MainAlign = FigmaAlign.Center,
-                CrossAlign = FigmaAlign.Center,
-                Padding = new Vector4(0f, 0f, 0f, 0f),
-                Border = border,
-                BorderWidths = new Vector4(0f, 0f, 0f, 1f),
-                //CornerRadius = 2f,
-                Gap = 20f,
-                Fill = Background,
-                Clicked = clicked,
-            }.Size(FigmaSize.Hug, FigmaSize.Hug);
-            button.Add(new FigmaText(default, text, fontSize, border, TextAnchor.MiddleCenter).Size(FigmaSize.Hug, FigmaSize.Hug));
-            return button;
-        }
-
-        // Borderless button that only shows an icon, dimmed until hovered.
-
+            ["Veil of  Quils"] = "Veil of Quills",
+            ["Tupas  Wrath"] = "Tupas Wrath",
+            ["Passage -  Start  Damage"] = "Passage",
+            ["The Old Bell"] = "Old Bell",
+            ["Double Knives"] = "Double Knives",
+            ["Closed  Body  Retaliation -  Ao E"] = "Closed Body",
+            ["Reflexes"] = "Spectral Knives",
+            ["Basic Attack"] = "Basic Attack",
+            ["Bleeding (DoT)"] = "Bleeding (DoT)",
+            ["Splitshot"] = "Splitshot",
+            ["Ignited (DoT)"] = "Ignited (DoT)",
+            ["Repeater"] = "Repeater",
+            ["Shadow Dash"] = "Shadow Dash",
+            ["Bombardment Projectile"] = "Bombardment",
+            ["Enemy  Cannons  Damage"] = "Matedeira",
+            ["Summon  The  Guard"] = "Summon The Guard",
+            ["Holy  Rosary"] = "Holy Rosary",
+            ["Summon  Marksmen"] = "Summon Marksmen",
+            ["Feitors Lash"] = "Feitors Lash",
+            ["Six  Shooter"] = "Lead Sermon",
+            ["Holy  Fire"] = "Holy Fire",
+            ["Holy  Fire -  Damage"] = "Holy Fire Explosion",
+            ["Carcara  Dive -  Damage"] = "Carcara  Dive",
+            ["Cilada -  Trap  Explosion"] = "Cilada",
+            ["Jaguar  Spear"] = "Jaguar Spear",
+        };
 
         // Progress bar built from frames: outline > track > one frame per segment, sized by FillWeight.
         // value is the filled fraction of the track; segments are split proportionally over the filled part.
-        static FigmaFrame ProgressBar(float value, double[] segments, Color[] colors, string label = null, List<Sprite> icons = null, Action clicked = null, Action hovered = null)
+        static FigmaFrame ProgressBar(float value, double[] segments, Color[] colors, string label = null, List<KeyValuePair<string, Sprite>> icons = null, Action clicked = null, Action hovered = null)
         {
             // main container for the progress bar and its label
             var frame = new FigmaFrame(default)
@@ -433,9 +438,16 @@ namespace DPSMeter.Windows.DPSMeterWindow
             // icons for the progress bar, if provided
             if (icons != null)
             {
-                foreach (var icon in icons)
+                foreach (var skill in icons)
                 {
-                    labelHeader.Add(new FigmaImage(new Rect(0f, 0f, 16f, 16f), icon).Size(FigmaSize.Hug, FigmaSize.Hug));
+                    string skillName = skill.Key;
+                    if (skill.Value == null) Plugin.Logger.LogWarning($"Icon for skill {skillName} is null.");
+
+                    labelHeader.Add(Helpers.IconButton(skill.Value, 16f, () => 
+                    {
+                        SelectedSkill = skills.TryGetValue(skillName, out var translated) ? translated : skillName;
+                        Plugin.Logger.LogInfo($"Selected skill: {skillName}, translated: {SelectedSkill}, icon: {skill.Value}");
+                    }));
                 }
             }
 
