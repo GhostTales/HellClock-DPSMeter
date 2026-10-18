@@ -80,7 +80,6 @@ namespace DPSMeter.Windows.DPSMeterWindow
             var mainBody = root.Add(new FigmaFrame(default)
             {
                 Layout = FigmaLayout.Horizontal,
-                Fill = Background,
                 MainAlign = FigmaAlign.Start,
                 CrossAlign = FigmaAlign.Center,
                 Padding = new Vector4(0f, 10f, 0f, 10f),
@@ -92,7 +91,6 @@ namespace DPSMeter.Windows.DPSMeterWindow
             var mainBodyLeft = mainBody.Add(new FigmaFrame(default)
             {
                 Layout = FigmaLayout.Vertical,
-                Fill = Background,
                 MainAlign = FigmaAlign.Center,
                 CrossAlign = FigmaAlign.Center,
                 Gap = 20f,
@@ -104,7 +102,6 @@ namespace DPSMeter.Windows.DPSMeterWindow
             var primaryReadout = mainBodyLeft.Add(new FigmaFrame(default)
             {
                 Layout = FigmaLayout.Vertical,
-                Fill = Background,
                 MainAlign = FigmaAlign.Start,
                 CrossAlign = FigmaAlign.Center,
                 Bounds = new Rect(0f, 0f, 256f, 91f),
@@ -113,7 +110,6 @@ namespace DPSMeter.Windows.DPSMeterWindow
             var primaryReadoutTextFrame = primaryReadout.Add(new FigmaFrame(default)
             {
                 Layout = FigmaLayout.Horizontal,
-                Fill = Background,
                 MainAlign = FigmaAlign.Center,
                 CrossAlign = FigmaAlign.Center,
                 Padding = new Vector4(0f, 0f, 0f, 0f),
@@ -160,7 +156,6 @@ namespace DPSMeter.Windows.DPSMeterWindow
                 var mainBodyRight = mainBody.Add(new FigmaFrame(default)
                 {
                     Layout = FigmaLayout.Vertical,
-                    Fill = Background,
                     MainAlign = FigmaAlign.Start,
                     CrossAlign = FigmaAlign.Start,
                     Padding = new Vector4(0f, 0f, 10f, 0f),
@@ -186,7 +181,6 @@ namespace DPSMeter.Windows.DPSMeterWindow
                     var infoFrame = mainBodyRight.Add(new FigmaFrame(default)
                     {
                         Layout = FigmaLayout.Horizontal,
-                        Fill = Background,
                         MainAlign = FigmaAlign.SpaceBetween,
                         CrossAlign = FigmaAlign.Center,
                         Bounds = new Rect(0f, 0f, _window.Rect.width, 26f),
@@ -224,7 +218,6 @@ namespace DPSMeter.Windows.DPSMeterWindow
                     var mainBodyBottom = root.Add(new FigmaFrame(default)
                     {
                         Layout = FigmaLayout.Vertical,
-                        Fill = Background,
                         MainAlign = FigmaAlign.Center,
                         CrossAlign = FigmaAlign.Center,
                         CornerRadii = new Vector4(0f, 0f, 10f, 10f),
@@ -236,7 +229,6 @@ namespace DPSMeter.Windows.DPSMeterWindow
                     var mainBodyBottomBreakdownHeader = mainBodyBottom.Add(new FigmaFrame(default)
                     {
                         Layout = FigmaLayout.Horizontal,
-                        Fill = Background,
                         MainAlign = FigmaAlign.Start,
                         CrossAlign = FigmaAlign.SpaceBetween,
                         BorderWidths = new Vector4(0f, 0f, 0f, 1f),
@@ -253,7 +245,6 @@ namespace DPSMeter.Windows.DPSMeterWindow
                     var mainBodyBottomContent = mainBodyBottom.Add(new FigmaFrame(default)
                     {
                         Layout = FigmaLayout.Horizontal,
-                        Fill = Background,
                         MainAlign = FigmaAlign.Start,
                         CrossAlign = FigmaAlign.Start,
                         Padding = new Vector4(0f, 0f, 0f, 0f),
@@ -264,7 +255,6 @@ namespace DPSMeter.Windows.DPSMeterWindow
                     var mainBodyBottomBars = mainBodyBottomContent.Add(new FigmaFrame(default)
                     {
                         Layout = FigmaLayout.Vertical,
-                        Fill = Background,
                         MainAlign = FigmaAlign.Start,
                         CrossAlign = FigmaAlign.Start,
                         Padding = new Vector4(0f, 0f, 0f, 0f),
@@ -275,7 +265,6 @@ namespace DPSMeter.Windows.DPSMeterWindow
                     var mainBodyBottomBarsInfo = mainBodyBottomContent.Add(new FigmaFrame(default)
                     {
                         Layout = FigmaLayout.Vertical,
-                        Fill = Background,
                         MainAlign = FigmaAlign.Start,
                         CrossAlign = FigmaAlign.Start,
                         Padding = new Vector4(0f, 0f, 0f, 0f),
@@ -286,7 +275,6 @@ namespace DPSMeter.Windows.DPSMeterWindow
                     var mainBodyBottomBarsInfoHeader = mainBodyBottomBarsInfo.Add(new FigmaFrame(default)
                     {
                         Layout = FigmaLayout.Horizontal,
-                        Fill = Background,
                         MainAlign = FigmaAlign.End,
                         CrossAlign = FigmaAlign.Center,
                         Padding = new Vector4(0f, 0f, 0f, 0f),
@@ -297,7 +285,6 @@ namespace DPSMeter.Windows.DPSMeterWindow
                     var mainBodyBottomBarsInfoData = mainBodyBottomBarsInfo.Add(new FigmaFrame(default)
                     {
                         Layout = FigmaLayout.Vertical,
-                        Fill = Background,
                         MainAlign = FigmaAlign.End,
                         CrossAlign = FigmaAlign.Center,
                         Padding = new Vector4(0f, 0f, 0f, 0f),
@@ -336,7 +323,6 @@ namespace DPSMeter.Windows.DPSMeterWindow
                         var barsInfoData = mainBodyBottomBarsInfoData.Add(new FigmaFrame(default)
                         {
                             Layout = FigmaLayout.Horizontal,
-                            Fill = Background,
                             MainAlign = FigmaAlign.End,
                             CrossAlign = FigmaAlign.Center,
                             Bounds = new Rect(0f, 0f, 130f, 12f),
@@ -494,7 +480,6 @@ namespace DPSMeter.Windows.DPSMeterWindow
             {
                 Layout = FigmaLayout.Horizontal,
                 Padding = new Vector4(2f, 2f, 2f, 2f),
-                Fill = Background,
                 CornerRadius = 10f,
                 Clicked = clicked,
                 Hovered = hovered,
@@ -507,7 +492,6 @@ namespace DPSMeter.Windows.DPSMeterWindow
             var track = bar.Add(new FigmaFrame(default)
             {
                 Layout = FigmaLayout.Horizontal,
-                Fill = Background,
                 CornerRadius = 10f,
                 Border = Color.black,
                 BorderWidth = 1f,
