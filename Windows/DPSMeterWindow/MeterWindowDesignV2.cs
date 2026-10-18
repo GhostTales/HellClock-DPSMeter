@@ -136,7 +136,6 @@ namespace DPSMeter.Windows.DPSMeterWindow
             var counterFrame = mainBodyLeft.Add(new FigmaFrame(default)
             {
                 Layout = FigmaLayout.Horizontal,
-                Fill = Background,
                 MainAlign = FigmaAlign.Center,
                 CrossAlign = FigmaAlign.Center,
                 Bounds = new Rect(0f, 0f, 46, 30f),
