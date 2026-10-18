@@ -465,6 +465,11 @@ namespace DPSMeter.Windows.DPSMeterWindow
                         SelectedSkillKey = skillName;
                         SelectedSkill = skills.TryGetValue(skillName, out var translated) ? translated : skillName;
                         Plugin.Logger.LogInfo($"Selected skill: {skillName}, translated: {SelectedSkill}, icon: {skill.Value}");
+                    },
+                    hovered: () =>
+                    {
+                         // temporarily highlight segment for the hovered skill
+                         
                     }));
                 }
             }
