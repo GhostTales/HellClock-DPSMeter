@@ -41,9 +41,12 @@ namespace DPSMeter
         public static float Start = -1f;
         public static float Last;
 
+        static readonly HashSet<string> SeenHits = new HashSet<string>();
+
         public static void Reset()
         {
             Skills.Clear();
+            SeenHits.Clear();
             Array.Clear(TypeTotals, 0, TypeCount);
             Array.Clear(TypeHits, 0, TypeCount);
             DotTotal = 0;
@@ -89,6 +92,7 @@ namespace DPSMeter
             string name = SkillName(d);
             if (!Skills.TryGetValue(name, out var e)) Skills[name] = e = new Entry();
             if (e.Icon == null) e.Icon = SourceIcon(d);
+            if (Plugin.LogUniqueHits.Value) LogUniqueHit(d, name, e.Icon, value);
             e.Total += value;
             e.Hits++;
             if (d.IsCritical) e.Crits++;
@@ -146,22 +150,64 @@ namespace DPSMeter
             for (int i = 0; i < TypeCount; i++) split[i] *= scale;
         }
 
-        // Skill icon, or the status icon for damage over time from a non-skill source
+        // Icon of the skill that owns the damage (the summon's parent skill, not the basic attack it
+        // uses), then the skill that dealt it, then the status icon for damage over time
         static Sprite SourceIcon(DamageInstance d)
         {
             try
             {
-                if (d.SkillID != -1)
-                {
-                    var icon = HellClock.Skill.SkillDefinition.GetSkillDefinition(d.SkillID)?.Icon;
-                    if (icon != null) return icon;
-                }
+                // Damage over time is listed under its status (Bleeding, Ignited...), so it uses the status icon
                 var dot = d.DamageSourceInfo?.DamageOverTimeID ?? -1;
                 if (dot != -1)
-                    return HellClock.Constants.Collections.STATUS_DEFINITION_COLLECTION.Reference.GetElement(dot)?.StatusDisplayInfo.Icon;
+                {
+                    var statusIcon = HellClock.Constants.Collections.STATUS_DEFINITION_COLLECTION.Reference.GetElement(dot)?.StatusDisplayInfo.Icon;
+                    if (statusIcon != null) return statusIcon;
+                }
+                return IconOf(d.SourceSkillID) ?? IconOf(d.SkillID);
             }
             catch { }
             return null;
+        }
+
+        static Sprite IconOf(int skillId) => skillId == -1 ? null : HellClock.Skill.SkillDefinition.GetSkillDefinition(skillId)?.Icon;
+
+        static string SkillDefLabel(int skillId)
+        {
+            if (skillId == -1) return "none";
+            try
+            {
+                var def = HellClock.Skill.SkillDefinition.GetSkillDefinition(skillId);
+                if (def == null) return $"{skillId} (no definition)";
+                return $"{skillId} '{def.name}' icon={(def.Icon != null ? def.Icon.name : "NONE")}";
+            }
+            catch (Exception ex)
+            {
+                return $"{skillId} (error: {ex.Message})";
+            }
+        }
+
+        // Logs the first hit of every distinct source so missing or wrong icons can be traced
+        static void LogUniqueHit(DamageInstance d, string name, Sprite icon, double value)
+        {
+            try
+            {
+                var info = d.DamageSourceInfo;
+                string attacker = d.Attacker?.LogName ?? "null";
+                string key = $"{name}|{d.SkillID}|{d.SourceSkillID}|{info?.DamageOverTimeID}|{attacker}";
+                if (!SeenHits.Add(key)) return;
+                Plugin.Logger.LogInfo(
+                    $"[Hit] entry='{name}' value={value:0.#} crit={d.IsCritical} dot={d.IsDamageOverTime} area={info?.IsAreaDamage} melee={info?.IsMeleeDamage}\n" +
+                    $"      attacker={attacker} ({d.Attacker?.GetType().Name}) target={d.Target?.GetType().Name}\n" +
+                    $"      sourceName='{info?.DamageSourceName}' sourceKey='{info?.DamageSourceKey}' damageSourceId={info?.DamageSourceID} dotId={info?.DamageOverTimeID}\n" +
+                    $"      skill={SkillDefLabel(d.SkillID)}\n" +
+                    $"      sourceSkill={SkillDefLabel(d.SourceSkillID)}\n" +
+                    $"      chosenIcon={(icon != null ? icon.name : "NONE")}");
+                if (icon == null) Plugin.Logger.LogWarning($"[Hit] no icon found for '{name}', it will not appear in the icon row");
+            }
+            catch (Exception ex)
+            {
+                Plugin.Logger.LogError($"[Hit] logging failed: {ex.Message}");
+            }
         }
 
         static string SkillName(DamageInstance d)
