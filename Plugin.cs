@@ -19,6 +19,7 @@ namespace DPSMeter
         internal static ConfigEntry<bool> CapOverkill;
         internal static ConfigEntry<bool> LinearTextFix;
         internal static ConfigEntry<bool> DebugWireframe;
+        internal static ConfigEntry<bool> LogUniqueHits;
 
         private void Awake()
         {
@@ -30,6 +31,7 @@ namespace DPSMeter
 
             LinearTextFix = Config.Bind("Display", "LinearTextFix", true, "Compensate text colours for the game's linear colour space (turn off if text looks too light)");
             DebugWireframe = Config.Bind("Debug", "Wireframe", false, "Draw the layout as a wireframe (outlines of every frame)");
+            LogUniqueHits = Config.Bind("Debug", "LogUniqueHits", true, "Log the skill, source and icon details the first time each distinct damage source is seen");
             FigmaFrame.Wireframe = DebugWireframe.Value;
             Gui.LinearTextFix = LinearTextFix.Value;
             Gui.Warn = Logger.LogWarning;
