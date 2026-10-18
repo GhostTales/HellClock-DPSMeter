@@ -29,6 +29,9 @@ namespace DPSMeter.Windows.DPSMeterWindow
         }
 
         private static string SelectedSkill = string.Empty;
+        private static string SelectedSkillKey = string.Empty; // raw tracker name of the selected skill
+
+        const float UnselectedOpacity = 0.25f;
 
         public MeterWindowDesignV2(MeterWindow meterWindow, FigmaWindow window)
         {
@@ -310,8 +313,15 @@ namespace DPSMeter.Windows.DPSMeterWindow
                         double amount = Tracker.TypeTotals[i];
                         if (amount <= 0) continue;
 
-                        // One segment filling the whole bar means no segmentation
-                        mainBodyBottomBars.Add(ProgressBar((float)(amount / sum), new[] { 1.0 }, new[] { Tracker.TypeColors[i] }, Tracker.TypeNames[i], Tracker.IconsForType(i)));
+                        // One segment per skill that dealt this damage type, biggest first
+                        var contributors = Tracker.Skills
+                            .Where(s => s.Value.ByType[i] > 0)
+                            .OrderByDescending(s => s.Value.ByType[i])
+                            .ToList();
+                        var segmentKeys = contributors.Select(s => s.Key).ToArray();
+                        var segmentValues = contributors.Select(s => s.Value.ByType[i]).ToArray();
+                        var segmentColors = contributors.Select(_ => Tracker.TypeColors[i]).ToArray();
+                        mainBodyBottomBars.Add(ProgressBar((float)(amount / sum), segmentValues, segmentColors, Tracker.TypeNames[i], Tracker.IconsForType(i), segmentKeys: segmentKeys));
 
 
                         var barsInfoData = mainBodyBottomBarsInfoData.Add(new FigmaFrame(default)
@@ -407,7 +417,7 @@ namespace DPSMeter.Windows.DPSMeterWindow
 
         // Progress bar built from frames: outline > track > one frame per segment, sized by FillWeight.
         // value is the filled fraction of the track; segments are split proportionally over the filled part.
-        static FigmaFrame ProgressBar(float value, double[] segments, Color[] colors, string label = null, List<KeyValuePair<string, Sprite>> icons = null, Action clicked = null, Action hovered = null)
+        static FigmaFrame ProgressBar(float value, double[] segments, Color[] colors, string label = null, List<KeyValuePair<string, Sprite>> icons = null, Action clicked = null, Action hovered = null, string[] segmentKeys = null)
         {
             // main container for the progress bar and its label
             var frame = new FigmaFrame(default)
@@ -436,6 +446,14 @@ namespace DPSMeter.Windows.DPSMeterWindow
                 labelHeader.Add(new FigmaText(default, label, 14, Text, TextAnchor.MiddleLeft).Size(FigmaSize.Hug, FigmaSize.Hug));
             }
             // icons for the progress bar, if provided
+
+            Plugin.Logger.LogInfo($"all skills and icons: {string.Join(", ", icons.Select(i => i.Key))}");
+
+            foreach (var skill in icons)
+            {
+                Plugin.Logger.LogInfo($"icon key: {skill.Key}, icon value: {skill.Value}");
+            }
+
             if (icons != null)
             {
                 foreach (var skill in icons)
@@ -445,6 +463,13 @@ namespace DPSMeter.Windows.DPSMeterWindow
 
                     labelHeader.Add(Helpers.IconButton(skill.Value, 16f, () => 
                     {
+                        // clicking the selected skill again clears the selection
+                        if (SelectedSkillKey == skillName)
+                        {
+                            SelectedSkillKey = SelectedSkill = string.Empty;
+                            return;
+                        }
+                        SelectedSkillKey = skillName;
                         SelectedSkill = skills.TryGetValue(skillName, out var translated) ? translated : skillName;
                         Plugin.Logger.LogInfo($"Selected skill: {skillName}, translated: {SelectedSkill}, icon: {skill.Value}");
                     }));
@@ -483,34 +508,31 @@ namespace DPSMeter.Windows.DPSMeterWindow
                 Border = Color.black,
                 BorderWidth = 1f,
                 Padding = new Vector4(1f, 1f, 1f, 1f), // keeps the segments inside the border
+                Gap = 2f,
             }.Size(FigmaSize.Fill, FigmaSize.Fill));
 
             double total = 0;
             for (int i = 0; i < segments.Length && i < colors.Length; i++) total += Math.Max(0.0, segments[i]);
             float filled = total > 0 ? Mathf.Clamp01(value) : 0f;
 
-            // Only the outer ends of the filled part are rounded, so segments butt up against each other.
-            int first = -1, last = -1;
             for (int i = 0; i < segments.Length && i < colors.Length; i++)
             {
                 if (segments[i] <= 0) continue;
-                if (first < 0) first = i;
-                last = i;
-            }
-            for (int i = first; first >= 0 && i <= last; i++)
-            {
-                if (segments[i] <= 0) continue;
-                float left = i == first ? 8f : 0f, right = i == last ? 8f : 0f;
+                var color = colors[i];
+                // dim every segment but the selected skill's
+                if (SelectedSkillKey != string.Empty && (segmentKeys == null || i >= segmentKeys.Length || segmentKeys[i] != SelectedSkillKey))
+                    color.a *= UnselectedOpacity;
                 track.Add(new FigmaFrame(default)
                 {
-                    Fill = colors[i],
-                    CornerRadii = new Vector4(left, right, right, left),
+                    Fill = color,
+                    CornerRadius = 10f,
                     FillWeight = filled * (float)(segments[i] / total),
                 }.Size(FigmaSize.Fill, FigmaSize.Fill));
             }
 
             // Unfilled remainder of the track.
-            track.Add(new FigmaFrame(default) { FillWeight = 1f - filled }.Size(FigmaSize.Fill, FigmaSize.Fill));
+            if (filled < 1f)
+                track.Add(new FigmaFrame(default) { FillWeight = 1f - filled }.Size(FigmaSize.Fill, FigmaSize.Fill));
             return frame;
         }
 
