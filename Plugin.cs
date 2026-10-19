@@ -15,12 +15,16 @@ namespace DPSMeter
         internal static new ManualLogSource Logger;
         internal static ConfigEntry<KeyCode> ToggleKey;
         internal static ConfigEntry<KeyCode> ResetKey;
+        internal static ConfigEntry<bool> AutoStop;
         internal static ConfigEntry<float> IdleTimeout;
+        internal static ConfigEntry<bool> AutoArm;
+        internal static ConfigEntry<KeyCode> StopRecording;
         internal static ConfigEntry<bool> CapOverkill;
         internal static ConfigEntry<bool> LinearTextFix;
         internal static ConfigEntry<float> UiScale;
         internal static ConfigEntry<bool> DebugWireframe;
         internal static ConfigEntry<bool> LogUniqueHits;
+        internal static ConfigEntry<KeyCode> MinimalistMode;
 
         private void Awake()
         {
@@ -41,9 +45,16 @@ namespace DPSMeter
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private void Initialize()
         {
-            ToggleKey = Config.Bind("Keys", "Toggle", KeyCode.F8, "Show/hide the meter");
-            ResetKey = Config.Bind("Keys", "Reset", KeyCode.F9, "Reset the meter");
+            ToggleKey = Config.Bind("Keys", "Toggle", KeyCode.F9, "Show/hide the meter");
+            ResetKey = Config.Bind("Keys", "Reset", KeyCode.F10, "Resets and arms the meter");
+            StopRecording = Config.Bind("Meter", "StopRecording", KeyCode.F11, "Stops recording damage");
+            MinimalistMode = Config.Bind("Meter", "MinimalistMode", KeyCode.F12, "Toggle minimalist mode for the UI");
+            
+            AutoStop = Config.Bind("Meter", "AutoStop", true, "Automatically stop the meter when leaving combat, after idle timeout");
             IdleTimeout = Config.Bind("Meter", "IdleTimeout", 5f, "Seconds without dealing damage before the fight timer stops");
+            AutoArm = Config.Bind("Meter", "AutoArm", true, "Automatically arm the meter when entering combat");
+            
+
             CapOverkill = Config.Bind("Meter", "CapOverkill", false, "Do not count damage beyond the target's remaining life (off = show true damage)");
 
             LinearTextFix = Config.Bind("Display", "LinearTextFix", true, "Compensate text colours for the game's linear colour space (turn off if text looks too light)");
@@ -51,7 +62,8 @@ namespace DPSMeter
             UiScale = Config.Bind("Display", "UiScale", 1f, new ConfigDescription(
                 "Scales all UI. The UI is designed for 1920x1080 at 1.0; use e.g. 1.33 on 2560x1440 or 2.0 on 3840x2160",
                 new AcceptableValueRange<float>(0.25f, 4f)));
-            LogUniqueHits = Config.Bind("Debug", "LogUniqueHits", true, "Log the skill, source and icon details the first time each distinct damage source is seen");
+            LogUniqueHits = Config.Bind("Debug", "LogUniqueHits", false, "Log the skill, source and icon details the first time each distinct damage source is seen");
+            
             FigmaFrame.Wireframe = DebugWireframe.Value;
             Gui.LinearTextFix = LinearTextFix.Value;
             Gui.Scale = UiScale.Value;
