@@ -112,5 +112,35 @@ namespace DPSMeter
             return button;
         }
 
+        static (FigmaFrame, bool) ToggleButton()
+        {
+
+            bool selected = false;
+
+            var button = new FigmaFrame(new Rect(0f, 0f, 20f, 20f))
+            {
+                Layout = FigmaLayout.Vertical,
+                MainAlign = FigmaAlign.Center,
+                CrossAlign = FigmaAlign.Center,
+                Border = Primary,
+                BorderWidth = 1f,
+                CornerRadius = 2.4f,
+                Clicked = () => selected = !selected,
+            }.Size(FigmaSize.Fixed, FigmaSize.Fixed);
+
+            if (selected)
+            {
+                button.Add(new FigmaFrame(new Rect(0f, 0f, 12f, 12f))
+                {
+                    Border = Primary,
+                    Fill = Primary,
+                    BorderWidth = 0.48f,
+                    CornerRadius = 0.96f,
+                }.Size(FigmaSize.Fixed, FigmaSize.Fixed));
+            }
+
+            return (button, selected);
+        }
+
     }
 }
