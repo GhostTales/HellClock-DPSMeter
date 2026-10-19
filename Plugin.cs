@@ -18,6 +18,7 @@ namespace DPSMeter
         internal static ConfigEntry<float> IdleTimeout;
         internal static ConfigEntry<bool> CapOverkill;
         internal static ConfigEntry<bool> LinearTextFix;
+        internal static ConfigEntry<float> UiScale;
         internal static ConfigEntry<bool> DebugWireframe;
         internal static ConfigEntry<bool> LogUniqueHits;
 
@@ -47,9 +48,14 @@ namespace DPSMeter
 
             LinearTextFix = Config.Bind("Display", "LinearTextFix", true, "Compensate text colours for the game's linear colour space (turn off if text looks too light)");
             DebugWireframe = Config.Bind("Debug", "Wireframe", false, "Draw the layout as a wireframe (outlines of every frame)");
+            UiScale = Config.Bind("Display", "UiScale", 1f, new ConfigDescription(
+                "Scales all UI. The UI is designed for 1920x1080 at 1.0; use e.g. 1.33 on 2560x1440 or 2.0 on 3840x2160",
+                new AcceptableValueRange<float>(0.25f, 4f)));
             LogUniqueHits = Config.Bind("Debug", "LogUniqueHits", true, "Log the skill, source and icon details the first time each distinct damage source is seen");
             FigmaFrame.Wireframe = DebugWireframe.Value;
             Gui.LinearTextFix = LinearTextFix.Value;
+            Gui.Scale = UiScale.Value;
+            UiScale.SettingChanged += (_, __) => Gui.Scale = UiScale.Value;
             Gui.Warn = Logger.LogWarning;
             try
             {
