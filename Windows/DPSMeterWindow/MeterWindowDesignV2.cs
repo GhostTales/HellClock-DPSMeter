@@ -13,6 +13,8 @@ namespace DPSMeter.Windows.DPSMeterWindow
         readonly FigmaWindow _window;
         readonly FigmaFrame root;
 
+        readonly FigmaFrame header;
+
         static readonly Color Accent = Helpers.Accent;
         static readonly Color Background = Helpers.Background;
         static readonly Color Primary = Helpers.Primary;
@@ -22,11 +24,14 @@ namespace DPSMeter.Windows.DPSMeterWindow
         static readonly Color Dimmed = new(1f, 1f, 1f, 0.7f);
         static readonly Color Pressed = new(1.1f, 1.1f, 1.1f, 1f);
 
-        private bool Minimal
-        {
-            get => _meterWindow.Minimal;
-            set => _meterWindow.Minimal = value;
-        }
+        private static bool Minimal = false;
+
+        static void ToggleMinimal() => Minimal = !Minimal;
+        
+
+        private static bool ConfigOpen = false;
+
+        static void ToggleConfig() => ConfigOpen = !ConfigOpen;
 
         private static string SelectedSkill = string.Empty;
         private static string SelectedSkillKey = string.Empty; // raw tracker name of the selected skill
@@ -57,7 +62,7 @@ namespace DPSMeter.Windows.DPSMeterWindow
 
 
 
-            FigmaFrame header;
+            
             if (SelectedSkill != string.Empty && !Minimal)
                 header = root.Add(Helpers.Header(_window, $"<cspace=0.3em>DPS METER — </cspace><cspace=0.15em>{SelectedSkill}</cspace>"));
             else
@@ -74,17 +79,25 @@ namespace DPSMeter.Windows.DPSMeterWindow
             if (!Minimal)
             {
                 buttonRow.Add(Helpers.IconButton("GearIcon.png", 24f, OpenConfig));
-                buttonRow.Add(Helpers.IconButton("BigToSmall.png", 24f, MinimizeWindow));
+                buttonRow.Add(Helpers.IconButton("BigToSmall.png", 24f, ToggleMinimal));
                 buttonRow.Add(Helpers.IconButton("CloseIcon.png", 24f, CloseWindow));
             }
             else
             {
-                buttonRow.Add(Helpers.IconButton("SmallToBig.png", 24f, MinimizeWindow));
+                buttonRow.Add(Helpers.IconButton("SmallToBig.png", 24f, ToggleMinimal));
             }
 
             header.Add(buttonRow);
 
-            MeterWindow();
+
+            if (ConfigOpen)
+            {
+                ConfigWindow();
+            }
+            else
+            {
+                MeterWindow();
+            }
         }
  
         private FigmaFrame MeterWindow()
@@ -273,7 +286,7 @@ namespace DPSMeter.Windows.DPSMeterWindow
             mainBodyBottomBreakdownHeader.Add(new FigmaText(default, "Breakdown", 16, Primary, TextAnchor.LowerLeft)
                 .Size(FigmaSize.Fill, FigmaSize.Hug));
 
-            mainBodyBottomBreakdownHeader.Add(Helpers.IconButton("AdvancedBreakdown.png", 20, OpenAdvancedBreakdown)
+            mainBodyBottomBreakdownHeader.Add(Helpers.IconButton("AdvancedBreakdown.png", 24, OpenAdvancedBreakdown)
             .Size(FigmaSize.Hug, FigmaSize.Hug));
 
             var mainBodyBottomContent = mainBodyBottom.Add(new FigmaFrame(default)
@@ -374,6 +387,21 @@ namespace DPSMeter.Windows.DPSMeterWindow
             return mainBodyBottom;
         }
 
+        private FigmaFrame ConfigWindow()
+        {
+            var configWindow = new FigmaFrame(default)
+            {
+                Layout = FigmaLayout.Vertical,
+                MainAlign = FigmaAlign.Start,
+                CrossAlign = FigmaAlign.Start,
+                Bounds = new Rect(0f, 0f, 459f, 170f),
+                
+            }.Size(FigmaSize.Fill, FigmaSize.Hug);
+
+            return configWindow;
+        }
+
+
         private void OpenAdvancedBreakdown()
         {
             _meterWindow.ReplaceAdvancedBreakdown<AdvancedBreakdown>();
@@ -381,8 +409,8 @@ namespace DPSMeter.Windows.DPSMeterWindow
 
         static void OpenConfig() 
         {
-            ToggleWireframe();
-            // Implement the logic to open the configuration window here
+            //ToggleWireframe();
+            ToggleConfig();
         }
 
         static void ToggleWireframe()
@@ -395,11 +423,6 @@ namespace DPSMeter.Windows.DPSMeterWindow
         {
             _window.FitTo(root);
             root.Render(new Rect(0f, 0f, _window.Rect.width, _window.Rect.height));
-        }
-
-        void MinimizeWindow()
-        {
-            Minimal = !Minimal;
         }
 
         void CloseWindow()
