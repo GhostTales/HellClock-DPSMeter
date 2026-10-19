@@ -84,12 +84,12 @@ namespace DPSMeter.Windows.DPSMeterWindow
 
             header.Add(buttonRow);
 
-            root.Add(MeterWindow());
+            MeterWindow();
         }
-
+ 
         private FigmaFrame MeterWindow()
         {
-            var mainBody = new FigmaFrame(default)
+            var mainBody = root.Add(new FigmaFrame(default)
             {
                 Layout = FigmaLayout.Horizontal,
                 MainAlign = FigmaAlign.Start,
@@ -98,7 +98,7 @@ namespace DPSMeter.Windows.DPSMeterWindow
                 CornerRadii = new Vector4(0f, 0f, 10f, 10f),
                 Gap = 10f,
                 Bounds = new Rect(0f, 0f, _window.Rect.width, 170f),
-            }.Size(FigmaSize.Fill, FigmaSize.Fixed);
+            }.Size(FigmaSize.Fill, FigmaSize.Fixed));
 
             if (Minimal)
             {
@@ -256,7 +256,7 @@ namespace DPSMeter.Windows.DPSMeterWindow
                 CornerRadii = new Vector4(0f, 0f, 10f, 10f),
                 Padding = new Vector4(10f, 10f, 10f, 10f),
                 Gap = 10f,
-                Bounds = new Rect(0f, 0f, _window.Rect.width, 208f),
+                Bounds = new Rect(0f, 0f, _window.Rect.width, 221f),
             }.Size(FigmaSize.Fill, FigmaSize.Hug);
 
             var mainBodyBottomBreakdownHeader = mainBodyBottom.Add(new FigmaFrame(default)
@@ -267,7 +267,8 @@ namespace DPSMeter.Windows.DPSMeterWindow
                 BorderWidths = new Vector4(0f, 0f, 0f, 1f),
                 Border = Primary,
                 Padding = new Vector4(0f, 5f, 0f, 5f),
-            }.Size(FigmaSize.Fill, FigmaSize.Hug));
+                Bounds = new Rect(0f, 0f, _window.Rect.width, 30f),
+            }.Size(FigmaSize.Fill, FigmaSize.Fixed));
 
             mainBodyBottomBreakdownHeader.Add(new FigmaText(default, "Breakdown", 16, Primary, TextAnchor.LowerLeft)
                 .Size(FigmaSize.Fill, FigmaSize.Hug));
@@ -290,7 +291,6 @@ namespace DPSMeter.Windows.DPSMeterWindow
                 Layout = FigmaLayout.Vertical,
                 MainAlign = FigmaAlign.Start,
                 CrossAlign = FigmaAlign.Start,
-                Padding = new Vector4(0f, 0f, 0f, 0f),
                 Gap = 5f,
                 Bounds = new Rect(0f, 0f, _window.Rect.width, 208f),
             }.Size(FigmaSize.Fill, FigmaSize.Hug));
@@ -300,7 +300,6 @@ namespace DPSMeter.Windows.DPSMeterWindow
                 Layout = FigmaLayout.Vertical,
                 MainAlign = FigmaAlign.Start,
                 CrossAlign = FigmaAlign.Start,
-                Padding = new Vector4(0f, 0f, 0f, 0f),
                 Gap = 5f,
                 Bounds = new Rect(0f, 0f, 130, _window.Rect.height),
             }.Size(FigmaSize.Hug, FigmaSize.Fill));
@@ -308,28 +307,25 @@ namespace DPSMeter.Windows.DPSMeterWindow
             var mainBodyBottomBarsInfoHeader = mainBodyBottomBarsInfo.Add(new FigmaFrame(default)
             {
                 Layout = FigmaLayout.Horizontal,
-                MainAlign = FigmaAlign.End,
+                MainAlign = FigmaAlign.SpaceBetween,
                 CrossAlign = FigmaAlign.Center,
-                Padding = new Vector4(0f, 0f, 0f, 0f),
                 Gap = 10f,
-                Bounds = new Rect(0f, 0f, 130f, 14f),
+                Bounds = new Rect(0f, 0f, 130f, 16f),
             }.Size(FigmaSize.Fill, FigmaSize.Fixed));
+
+            mainBodyBottomBarsInfoHeader.Add(new FigmaText(default, "Sum", 16, Text){Align = TextAnchor.MiddleLeft}.Size(FigmaSize.Hug, FigmaSize.Hug));
+            mainBodyBottomBarsInfoHeader.Add(new FigmaText(default, "% of All", 16, Text){Align = TextAnchor.MiddleRight}.Size(FigmaSize.Hug, FigmaSize.Hug));
 
             var mainBodyBottomBarsInfoData = mainBodyBottomBarsInfo.Add(new FigmaFrame(default)
             {
                 Layout = FigmaLayout.Vertical,
-                MainAlign = FigmaAlign.End,
-                CrossAlign = FigmaAlign.Center,
-                Padding = new Vector4(0f, 0f, 0f, 0f),
-                Gap = 25f,
-                Bounds = new Rect(0f, 0f, 130f, 123f),
-            }.Size(FigmaSize.Fixed, FigmaSize.Hug));
+                MainAlign = FigmaAlign.SpaceBetween,
+                CrossAlign = FigmaAlign.End,
+                Bounds = new Rect(0f, 0f, 130f, 135f),
+            }.Size(FigmaSize.Fixed, FigmaSize.Fill));
 
             // add info bars for each damage type with non-zero totals
             double sum = Tracker.TypeTotals.Sum();
-
-            mainBodyBottomBarsInfoHeader.Add(new FigmaText(default, "Sum", 14, Text).Size(FigmaSize.Hug, FigmaSize.Hug));
-            mainBodyBottomBarsInfoHeader.Add(new FigmaText(default, "Distribution", 14, Text).Size(FigmaSize.Hug, FigmaSize.Hug));
 
             // sort so that damage types with higher totals appear first
             var sortedIndices = Enumerable.Range(0, Tracker.TypeCount)
@@ -356,23 +352,21 @@ namespace DPSMeter.Windows.DPSMeterWindow
                 var barsInfoData = mainBodyBottomBarsInfoData.Add(new FigmaFrame(default)
                 {
                     Layout = FigmaLayout.Horizontal,
-                    MainAlign = FigmaAlign.End,
+                    MainAlign = FigmaAlign.SpaceBetween,
                     CrossAlign = FigmaAlign.Center,
-                    Bounds = new Rect(0f, 0f, 130f, 12f),
-                    Gap = 10f,
-                    Padding = new Vector4(0f, 0f, 0f, 0f),
+                    Bounds = new Rect(0f, 0f, 130f, 14f),
                 }.Size(FigmaSize.Fill, FigmaSize.Fixed));
 
 
-                barsInfoData.Add(new FigmaText(default, Helpers.Fmt(amount), 12, Primary)
+                barsInfoData.Add(new FigmaText(default, Helpers.Fmt(amount), 14, Primary)
                 {
-                    Bounds = new Rect(0f, 0f, 50f, 12f),
-                    Align = TextAnchor.MiddleRight
+                    Bounds = new Rect(0f, 0f, 50f, 14f),
+                    Align = TextAnchor.MiddleLeft
                 }.Size(FigmaSize.Fixed, FigmaSize.Hug));
 
-                barsInfoData.Add(new FigmaText(default, (amount / sum).ToString("P1"), 12, Primary)
+                barsInfoData.Add(new FigmaText(default, (amount / sum).ToString("P1"), 14, Primary)
                 {
-                    Bounds = new Rect(0f, 0f, 70f, 12f),
+                    Bounds = new Rect(0f, 0f, 70f, 14f),
                     Align = TextAnchor.MiddleRight
                 }.Size(FigmaSize.Fixed, FigmaSize.Hug));
             }
@@ -385,7 +379,7 @@ namespace DPSMeter.Windows.DPSMeterWindow
             _meterWindow.ReplaceAdvancedBreakdown<AdvancedBreakdown>();
         }
 
-        static void OpenConfig()
+        static void OpenConfig() 
         {
             ToggleWireframe();
             // Implement the logic to open the configuration window here
@@ -452,7 +446,7 @@ namespace DPSMeter.Windows.DPSMeterWindow
             {
                 Layout = FigmaLayout.Vertical,
                 Gap = 2f,
-                Bounds = new Rect(0f, 0f, 0f, 32f),
+                Bounds = new Rect(0f, 0f, 0f, 35f),
                 MainAlign = FigmaAlign.Start,
                 CrossAlign = FigmaAlign.Start,
             }.Size(FigmaSize.Fill, FigmaSize.Fixed);
@@ -463,7 +457,7 @@ namespace DPSMeter.Windows.DPSMeterWindow
                 Layout = FigmaLayout.Horizontal,
                 MainAlign = FigmaAlign.Start,
                 CrossAlign = FigmaAlign.Center,
-                Bounds = new Rect(0f, 0f, 0f, 16f),
+                Bounds = new Rect(0f, 0f, 0f, 21f),
                 Gap = 10f,
             }.Size(FigmaSize.Fill, FigmaSize.Fixed));
 
@@ -480,9 +474,9 @@ namespace DPSMeter.Windows.DPSMeterWindow
                 foreach (var skill in icons)
                 {
                     string skillName = skill.Key;
-                    if (skill.Value == null) Plugin.Logger.LogWarning($"Icon for skill {skillName} is null.");
+                    //if (skill.Value == null) Plugin.Logger.LogWarning($"Icon for skill {skillName} is null.");
 
-                    labelHeader.Add(Helpers.IconButton(skill.Value, 16f, () =>
+                    labelHeader.Add(Helpers.IconButton(skill.Value, 21f, () =>
                     {
                         // clicking the selected skill again clears the selection
                         if (SelectedSkillKey == skillName)
@@ -492,7 +486,7 @@ namespace DPSMeter.Windows.DPSMeterWindow
                         }
                         SelectedSkillKey = skillName;
                         SelectedSkill = skills.TryGetValue(skillName, out var translated) ? translated : skillName;
-                        Plugin.Logger.LogInfo($"Selected skill: {skillName}, translated: {SelectedSkill}, icon: {skill.Value}");
+                        //Plugin.Logger.LogInfo($"Selected skill: {skillName}, translated: {SelectedSkill}, icon: {skill.Value}");
                     },
                     // temporarily highlight the segments of the hovered skill
                     hovered: () => PendingHoveredSkillKey = skillName));
