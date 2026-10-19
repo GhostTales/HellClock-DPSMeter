@@ -389,14 +389,16 @@ namespace DPSMeter.Windows.DPSMeterWindow
 
         private FigmaFrame ConfigWindow()
         {
-            var configWindow = new FigmaFrame(default)
+            // Fixed width uses Bounds.width; Hug height follows the children, so the window (AutoHeight) grows with them.
+            var configWindow = root.Add(new FigmaFrame(default)
             {
                 Layout = FigmaLayout.Vertical,
                 MainAlign = FigmaAlign.Start,
                 CrossAlign = FigmaAlign.Start,
-                Bounds = new Rect(0f, 0f, 459f, 170f),
-                
-            }.Size(FigmaSize.Fill, FigmaSize.Hug);
+                Bounds = new Rect(0f, 0f, 459f, 0f),
+                Gap = 20f,
+                Padding = new Vector4(10f, 10f, 10f, 10f),
+            }.Size(FigmaSize.Fixed, FigmaSize.Hug));
 
             return configWindow;
         }
