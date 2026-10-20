@@ -16,6 +16,7 @@ namespace DPSMeter
         public static Font Regular => Get("Regular");
         public static Font Medium => Get("Medium");
         public static Font Light => Get("Light");
+        public static Font Bold => Get("Bold");
 
         /// <summary>Returns the bundled font face (e.g. "Medium"), or null if it is unavailable.</summary>
         public static Font Get(string style) => Fonts.TryGetValue(FontPrefix + style, out var font) ? font : null;
