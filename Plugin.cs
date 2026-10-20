@@ -47,11 +47,12 @@ namespace DPSMeter
         {
             ToggleKey = Config.Bind("Keys", "Toggle", KeyCode.F9, "Show/hide the meter");
             ResetKey = Config.Bind("Keys", "Reset", KeyCode.F10, "Resets and arms the meter");
-            StopRecording = Config.Bind("Meter", "StopRecording", KeyCode.F11, "Stops recording damage");
+            StopRecording = Config.Bind("Meter", "StopRecording", KeyCode.F11, "Stops recording damage, AutoArm cannot trigger for 3 seconds after stopping to prevent immediate re-arming");
             MinimalistMode = Config.Bind("Meter", "MinimalistMode", KeyCode.F12, "Toggle minimalist mode for the UI");
             
             AutoStop = Config.Bind("Meter", "AutoStop", true, "Automatically stop the meter when leaving combat, after idle timeout");
             IdleTimeout = Config.Bind("Meter", "IdleTimeout", 5f, "Seconds without dealing damage before the fight timer stops");
+
             AutoArm = Config.Bind("Meter", "AutoArm", true, "Automatically arm the meter when entering combat");
             
 
