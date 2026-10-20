@@ -112,11 +112,8 @@ namespace DPSMeter
             return button;
         }
 
-        static (FigmaFrame, bool) ToggleButton()
+        public static FigmaFrame ToggleButton(bool selected, Action clicked)
         {
-
-            bool selected = false;
-
             var button = new FigmaFrame(new Rect(0f, 0f, 20f, 20f))
             {
                 Layout = FigmaLayout.Vertical,
@@ -125,7 +122,7 @@ namespace DPSMeter
                 Border = Primary,
                 BorderWidth = 1f,
                 CornerRadius = 2.4f,
-                Clicked = () => selected = !selected,
+                Clicked = clicked,
             }.Size(FigmaSize.Fixed, FigmaSize.Fixed);
 
             if (selected)
@@ -139,7 +136,7 @@ namespace DPSMeter
                 }.Size(FigmaSize.Fixed, FigmaSize.Fixed));
             }
 
-            return (button, selected);
+            return button;
         }
 
     }
