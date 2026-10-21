@@ -403,6 +403,71 @@ namespace DPSMeter.Windows.DPSMeterWindow
             return configWindow;
         }
 
+        private FigmaFrame ConfigWindowAutoRecording()
+        {
+            var autoRecordingWindow = new FigmaFrame(default)
+            {
+                Layout = FigmaLayout.Vertical,
+                MainAlign = FigmaAlign.Start,
+                CrossAlign = FigmaAlign.Start,
+                Bounds = new Rect(0f, 0f, 439f, 103f),
+                Gap = 5f,
+            }.Size(FigmaSize.Hug, FigmaSize.Hug);
+
+            var autoRecordingTitleBox = new FigmaFrame(default)
+            {
+                Layout = FigmaLayout.Vertical,
+                MainAlign = FigmaAlign.Start,
+                CrossAlign = FigmaAlign.Center,
+                Bounds = new Rect(0f, 0f, 132f, 36f),
+                Gap = 10f,
+            }.Size(FigmaSize.Fixed, FigmaSize.Fixed);
+
+            autoRecordingTitleBox.Add(new FigmaText(default, "Auto Recording", 14, Secondary)
+            {
+                Font = BundledFont.Bold,
+                Bounds = new Rect(0f, 0f, 132f, 14f),
+                Align = TextAnchor.MiddleLeft
+            }.Size(FigmaSize.Fixed, FigmaSize.Fixed));
+
+            autoRecordingTitleBox.Add(new FigmaText(default, "Toggle and edit timings", 12, Secondary)
+            {
+                Font = BundledFont.Regular,
+                Bounds = new Rect(0f, 0f, 132f, 12f),
+                Align = TextAnchor.MiddleLeft
+            }.Size(FigmaSize.Fixed, FigmaSize.Fixed));
+
+            autoRecordingWindow.Add(autoRecordingTitleBox);
+
+            var autoArmToggleBox = new FigmaFrame(default)
+            {
+                Layout = FigmaLayout.Horizontal,
+                MainAlign = FigmaAlign.Start,
+                CrossAlign = FigmaAlign.Center,
+                Bounds = new Rect(0f, 0f, 132f, 36f),
+                Gap = 10f,
+            }.Size(FigmaSize.Fixed, FigmaSize.Fixed);
+
+            autoRecordingWindow.Add(autoArmToggleBox);
+
+            return autoRecordingWindow;
+        }
+
+
+        private FigmaFrame ConfigWindowToggleSetting(string settingName, string settingDescription = "")
+        {
+            var toggleSettingWindow = new FigmaFrame(default)
+            {
+                Layout = FigmaLayout.Vertical,
+                MainAlign = FigmaAlign.Start,
+                CrossAlign = FigmaAlign.Start,
+                Bounds = new Rect(0f, 0f, 439f, 103f),
+                Gap = 5f,
+            }.Size(FigmaSize.Hug, FigmaSize.Hug);
+
+            return toggleSettingWindow;
+        }
+
 
         private void OpenAdvancedBreakdown()
         {
