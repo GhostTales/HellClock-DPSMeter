@@ -85,7 +85,7 @@ namespace DPSMeter
 
             Total += value;
             Hits++;
-            if (d.IsCritical) Crits++;
+            Crits += d.TotalCrits; // above 1 per hit when crit chance overflows, so the rate can pass 100%
             if (Elapsed >= PeakMinSeconds) PeakDps = Math.Max(PeakDps, Dps);
             if (value > Highest) Highest = value;
 
@@ -96,7 +96,7 @@ namespace DPSMeter
             if (Plugin.LogUniqueHits.Value) LogUniqueHit(d, name, e.Icon, value);
             e.Total += value;
             e.Hits++;
-            if (d.IsCritical) e.Crits++;
+            e.Crits += d.TotalCrits;
             if (value > e.Max) e.Max = value;
             if (d.IsDamageOverTime) DotTotal += value;
 
