@@ -400,6 +400,8 @@ namespace DPSMeter.Windows.DPSMeterWindow
                 Padding = new Vector4(10f, 10f, 10f, 10f),
             }.Size(FigmaSize.Fixed, FigmaSize.Hug));
 
+            configWindow.Add(ConfigWindowAutoRecording());
+
             return configWindow;
         }
 
