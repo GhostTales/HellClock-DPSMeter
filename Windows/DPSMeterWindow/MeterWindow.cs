@@ -13,9 +13,6 @@ namespace DPSMeter.Windows.DPSMeterWindow
         private bool Visible { get; set; } = true;
         public bool GlobalVisible { get; set; } = true;
 
-        // Lives here because the design is rebuilt every frame.
-        public bool Minimal { get; set; }
-
         public void Toggle() => Visible = !Visible;
 
         public AdvancedBreakdown AdvancedBreakdown { get; private set; }
@@ -40,6 +37,8 @@ namespace DPSMeter.Windows.DPSMeterWindow
         {
             if (Input.GetKeyDown(Plugin.ToggleKey.Value)) { GlobalVisible = !GlobalVisible; Visible = GlobalVisible; }
             if (Input.GetKeyDown(Plugin.ResetKey.Value)) Tracker.Reset();
+            if (Input.GetKeyDown(Plugin.StopRecording.Value)) Tracker.StopRecording();
+            if (Input.GetKeyDown(Plugin.MinimalistMode.Value)) Plugin.Minimal = !Plugin.Minimal;
         }
 
         void OnGUI()

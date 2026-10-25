@@ -43,7 +43,36 @@ namespace DPSMeter
 
         static readonly HashSet<string> SeenHits = new HashSet<string>();
 
+        const float ArmCooldown = 3f; // after stopping, AutoArm cannot start a new fight for this long
+
+        // Armed: the next hit starts a fight even with AutoArm off. Stopped: recording was stopped by hand and the numbers are frozen.
+        public static bool Armed { get; private set; }
+        public static bool Stopped { get; private set; }
+        static float _stopTime;
+        static float _stoppedAt = float.NegativeInfinity;
+
+        // Clears the fight and arms the meter so the next hit starts a new one.
         public static void Reset()
+        {
+            Clear();
+            Stopped = false;
+            Armed = true;
+        }
+
+        public static void StopRecording()
+        {
+            if (Start >= 0f && !Stopped)
+            {
+                Stopped = true;
+                _stopTime = Time.time;
+            }
+            Armed = false;
+            _stoppedAt = Time.time;
+        }
+
+        static bool IdleExpired(float now) => Plugin.AutoStop.Value && now - Last > Plugin.IdleTimeout.Value;
+
+        static void Clear()
         {
             Skills.Clear();
             SeenHits.Clear();
@@ -61,7 +90,7 @@ namespace DPSMeter
             get
             {
                 if (Start < 0f) return 0f;
-                float end = Time.time - Last > Plugin.IdleTimeout.Value ? Last : Time.time;
+                float end = Stopped ? _stopTime : IdleExpired(Time.time) ? Last : Time.time;
                 return Mathf.Max(end - Start, 0.01f);
             }
         }
@@ -76,9 +105,14 @@ namespace DPSMeter
             if (value <= 0.0) return;
 
             float now = Time.time;
-            if (Start < 0f || now - Last > Plugin.IdleTimeout.Value)
+            bool running = Start >= 0f && !Stopped && !IdleExpired(now);
+            if (!running)
             {
-                if (Start >= 0f) Reset();
+                bool canStart = Armed || (Plugin.AutoArm.Value && now - _stoppedAt >= ArmCooldown);
+                if (!canStart) return;
+                Clear();
+                Stopped = false;
+                Armed = false;
                 Start = now;
             }
             Last = now;

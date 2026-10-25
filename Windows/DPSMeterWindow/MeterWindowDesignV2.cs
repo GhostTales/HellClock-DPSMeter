@@ -24,7 +24,11 @@ namespace DPSMeter.Windows.DPSMeterWindow
         static readonly Color Dimmed = new(1f, 1f, 1f, 0.7f);
         static readonly Color Pressed = new(1.1f, 1.1f, 1.1f, 1f);
 
-        private static bool Minimal = false;
+        private static bool Minimal
+        {
+            get => Plugin.Minimal;
+            set => Plugin.Minimal = value;
+        }
 
         static void ToggleMinimal() => Minimal = !Minimal;
         
@@ -425,7 +429,7 @@ namespace DPSMeter.Windows.DPSMeterWindow
                 Gap = 10f,
             }.Size(FigmaSize.Fixed, FigmaSize.Fixed);
 
-            autoRecordingTitleBox.Add(new FigmaText(default, "Auto Recording", 14, Secondary)
+            autoRecordingTitleBox.Add(new FigmaText(default, "Automatic Recording", 14, Secondary)
             {
                 Font = BundledFont.Bold,
                 Bounds = new Rect(0f, 0f, 132f, 14f),
@@ -453,21 +457,6 @@ namespace DPSMeter.Windows.DPSMeterWindow
             autoRecordingWindow.Add(autoArmToggleBox);
 
             return autoRecordingWindow;
-        }
-
-
-        private FigmaFrame ConfigWindowToggleSetting(string settingName, string settingDescription = "")
-        {
-            var toggleSettingWindow = new FigmaFrame(default)
-            {
-                Layout = FigmaLayout.Vertical,
-                MainAlign = FigmaAlign.Start,
-                CrossAlign = FigmaAlign.Start,
-                Bounds = new Rect(0f, 0f, 439f, 103f),
-                Gap = 5f,
-            }.Size(FigmaSize.Hug, FigmaSize.Hug);
-
-            return toggleSettingWindow;
         }
 
 
