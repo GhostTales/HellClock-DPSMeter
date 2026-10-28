@@ -406,6 +406,8 @@ namespace DPSMeter.Windows.DPSMeterWindow
 
             configWindow.Add(ConfigWindowAutoRecording());
 
+            configWindow.Add(Helpers.ToggleButton(Plugin.DebugWireframe.Value, ToggleWireframe));
+
             return configWindow;
         }
 
@@ -414,47 +416,66 @@ namespace DPSMeter.Windows.DPSMeterWindow
             var autoRecordingWindow = new FigmaFrame(default)
             {
                 Layout = FigmaLayout.Vertical,
-                MainAlign = FigmaAlign.Start,
-                CrossAlign = FigmaAlign.Start,
                 Bounds = new Rect(0f, 0f, 439f, 103f),
                 Gap = 5f,
-            }.Size(FigmaSize.Hug, FigmaSize.Hug);
+            }.Size(FigmaSize.Hug, FigmaSize.Fixed);
 
             var autoRecordingTitleBox = new FigmaFrame(default)
             {
                 Layout = FigmaLayout.Vertical,
-                MainAlign = FigmaAlign.Start,
-                CrossAlign = FigmaAlign.Center,
+                MainAlign = FigmaAlign.Center,
+                CrossAlign = FigmaAlign.Start,
                 Bounds = new Rect(0f, 0f, 132f, 36f),
-                Gap = 10f,
-            }.Size(FigmaSize.Fixed, FigmaSize.Fixed);
+                //Gap = 5f,
+            }.Size(FigmaSize.Hug, FigmaSize.Fixed);
 
-            autoRecordingTitleBox.Add(new FigmaText(default, "Automatic Recording", 14, Secondary)
-            {
-                Font = BundledFont.Bold,
-                Bounds = new Rect(0f, 0f, 132f, 14f),
-                Align = TextAnchor.MiddleLeft
-            }.Size(FigmaSize.Fixed, FigmaSize.Fixed));
+            // autoRecordingTitleBox.Add(new FigmaText(default, "Automatic Recording", 14, Primary)
+            // {
+            //     Font = BundledFont.Bold,
+            //     Bounds = new Rect(0f, 0f, 132f, 14f),
+            //     Align = TextAnchor.MiddleLeft
+            // }.Size(FigmaSize.Hug, FigmaSize.Hug));
 
-            autoRecordingTitleBox.Add(new FigmaText(default, "Toggle and edit timings", 12, Secondary)
-            {
-                Font = BundledFont.Regular,
-                Bounds = new Rect(0f, 0f, 132f, 12f),
-                Align = TextAnchor.MiddleLeft
-            }.Size(FigmaSize.Fixed, FigmaSize.Fixed));
+            // autoRecordingTitleBox.Add(new FigmaText(default, "Toggle and edit timings", 12, Secondary)
+            // {
+            //     Font = BundledFont.Regular,
+            //     Bounds = new Rect(0f, 0f, 132f, 12f),
+            //     Align = TextAnchor.MiddleLeft
+            // }.Size(FigmaSize.Hug, FigmaSize.Hug));
+
+            autoRecordingWindow.Add(ForceTextHeightBox(14, 132, "Automatic Recording", Primary, BundledFont.Bold));
+            autoRecordingWindow.Add(ForceTextHeightBox(12, 132, "Toggle and edit timings", Secondary, BundledFont.Regular));
 
             autoRecordingWindow.Add(autoRecordingTitleBox);
+
+            var configTogglesBox = new FigmaFrame(default)
+            {
+                Layout = FigmaLayout.Vertical,
+                Bounds = new Rect(0f, 0f, 439f, 62f),
+                Gap = 10f,
+            }.Size(FigmaSize.Fixed, FigmaSize.Fixed);
 
             var autoArmToggleBox = new FigmaFrame(default)
             {
                 Layout = FigmaLayout.Horizontal,
-                MainAlign = FigmaAlign.Start,
-                CrossAlign = FigmaAlign.Center,
-                Bounds = new Rect(0f, 0f, 132f, 36f),
-                Gap = 10f,
+                MainAlign = FigmaAlign.Center,
+                CrossAlign = FigmaAlign.Start,
+                Bounds = new Rect(0f, 0f, 206f, 20f),
+                Gap = 5f,
             }.Size(FigmaSize.Fixed, FigmaSize.Fixed);
 
-            autoRecordingWindow.Add(autoArmToggleBox);
+            autoArmToggleBox.Add(Helpers.ToggleButton(Plugin.AutoArm.Value, () => Plugin.AutoArm.Value = !Plugin.AutoArm.Value));
+
+            autoArmToggleBox.Add(new FigmaText(default, "Arm recording automatically", 16, Text)
+            {
+                Font = BundledFont.Regular,
+                Bounds = new Rect(0f, 0f, 181f, 16f),
+                Align = TextAnchor.MiddleLeft
+            }.Size(FigmaSize.Hug, FigmaSize.Hug));
+
+            configTogglesBox.Add(autoArmToggleBox);
+
+            autoRecordingWindow.Add(configTogglesBox);
 
             return autoRecordingWindow;
         }
@@ -635,6 +656,21 @@ namespace DPSMeter.Windows.DPSMeterWindow
             return frame;
         }
 
+        static FigmaFrame ForceTextHeightBox(int height, int width, string text, Color color, Font font)
+        {
+            var frame = new FigmaFrame(default)
+            {
+                Bounds = new Rect(0f, 0f, width, height),
+            }.Size(FigmaSize.Hug, FigmaSize.Fixed);
 
+            frame.Add(new FigmaText(default, text, height, color)
+            {
+                Font = font,
+                Align = TextAnchor.UpperLeft,
+                Bounds = new Rect(0f, 0f, width, height),
+            }.Size(FigmaSize.Hug, FigmaSize.Hug));
+
+            return frame;
+        }
     }
 }
