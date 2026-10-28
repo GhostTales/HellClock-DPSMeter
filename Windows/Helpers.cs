@@ -92,7 +92,7 @@ namespace DPSMeter
             return button;
         }
 
-        static FigmaFrame Button(string text, bool selected, int fontSize, Action clicked)
+        public static FigmaFrame Button(string text, bool selected, int fontSize, Action clicked)
         {
             var border = selected ? Primary : Secondary;
             var button = new FigmaFrame(new Rect(0f, 0f, 0f, 30f))
