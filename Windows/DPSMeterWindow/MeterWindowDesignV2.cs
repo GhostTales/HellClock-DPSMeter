@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using BepInEx.Configuration;
 using DPSMeter.Windows.AdvancedWindow;
 using FrameUI;
 using UnityEngine;
@@ -417,43 +418,30 @@ namespace DPSMeter.Windows.DPSMeterWindow
             {
                 Layout = FigmaLayout.Vertical,
                 Bounds = new Rect(0f, 0f, 439f, 103f),
-                Gap = 5f,
+                Gap = 10f,
             }.Size(FigmaSize.Hug, FigmaSize.Fixed);
 
             var autoRecordingTitleBox = new FigmaFrame(default)
             {
                 Layout = FigmaLayout.Vertical,
-                MainAlign = FigmaAlign.Center,
+                MainAlign = FigmaAlign.Start,
                 CrossAlign = FigmaAlign.Start,
                 Bounds = new Rect(0f, 0f, 132f, 36f),
-                //Gap = 5f,
+                Gap = 5f,
             }.Size(FigmaSize.Hug, FigmaSize.Fixed);
 
-            // autoRecordingTitleBox.Add(new FigmaText(default, "Automatic Recording", 14, Primary)
-            // {
-            //     Font = BundledFont.Bold,
-            //     Bounds = new Rect(0f, 0f, 132f, 14f),
-            //     Align = TextAnchor.MiddleLeft
-            // }.Size(FigmaSize.Hug, FigmaSize.Hug));
 
-            // autoRecordingTitleBox.Add(new FigmaText(default, "Toggle and edit timings", 12, Secondary)
-            // {
-            //     Font = BundledFont.Regular,
-            //     Bounds = new Rect(0f, 0f, 132f, 12f),
-            //     Align = TextAnchor.MiddleLeft
-            // }.Size(FigmaSize.Hug, FigmaSize.Hug));
-
-            autoRecordingWindow.Add(ForceTextHeightBox(14, 132, "Automatic Recording", Primary, BundledFont.Bold));
-            autoRecordingWindow.Add(ForceTextHeightBox(12, 132, "Toggle and edit timings", Secondary, BundledFont.Regular));
+            autoRecordingTitleBox.Add(ForceTextHeightBox(14, 132, "Automatic Recording", Primary, BundledFont.Bold));
+            autoRecordingTitleBox.Add(ForceTextHeightBox(12, 132, "Toggle and edit timings", Secondary, BundledFont.Regular));
 
             autoRecordingWindow.Add(autoRecordingTitleBox);
 
             var configTogglesBox = new FigmaFrame(default)
             {
                 Layout = FigmaLayout.Vertical,
-                Bounds = new Rect(0f, 0f, 439f, 62f),
+                Bounds = new Rect(0f, 0f, _window.Rect.width, 62f),
                 Gap = 10f,
-            }.Size(FigmaSize.Fixed, FigmaSize.Fixed);
+            }.Size(FigmaSize.Fill, FigmaSize.Fixed);
 
             var autoArmToggleBox = new FigmaFrame(default)
             {
@@ -660,6 +648,7 @@ namespace DPSMeter.Windows.DPSMeterWindow
         {
             var frame = new FigmaFrame(default)
             {
+                Layout = FigmaLayout.Horizontal,
                 Bounds = new Rect(0f, 0f, width, height),
             }.Size(FigmaSize.Hug, FigmaSize.Fixed);
 
@@ -669,6 +658,54 @@ namespace DPSMeter.Windows.DPSMeterWindow
                 Align = TextAnchor.UpperLeft,
                 Bounds = new Rect(0f, 0f, width, height),
             }.Size(FigmaSize.Hug, FigmaSize.Hug));
+
+            return frame;
+        }
+
+        static FigmaFrame SettingsToggle(ConfigEntry<bool> conf, string label, int fontSize, bool additional, ConfigEntry<int> additionalConf, string additionalLabel = "")
+        {
+            var frame = new FigmaFrame(default)
+            {
+                Layout = FigmaLayout.Horizontal,
+                MainAlign = FigmaAlign.SpaceBetween,
+                CrossAlign = FigmaAlign.Center,
+                Bounds = new Rect(0f, 0f, 0f, 26f),
+            }.Size(FigmaSize.Fill, FigmaSize.Fixed);
+
+            var ToggleBox = new FigmaFrame(default)
+            {
+                Layout = FigmaLayout.Horizontal,
+                MainAlign = FigmaAlign.Center,
+                CrossAlign = FigmaAlign.Center,
+                Bounds = new Rect(0f, 0f, 92f, 20f),
+                Gap = 5f,
+            }.Size(FigmaSize.Fixed, FigmaSize.Fixed);
+
+            ToggleBox.Add(Helpers.ToggleButton(conf.Value, () => conf.Value = !conf.Value));
+
+            ToggleBox.Add(new FigmaText(default, label, fontSize, conf.Value ? Text : Secondary)
+            {
+                Font = BundledFont.Regular,
+                Bounds = new Rect(0f, 0f, 181f, fontSize),
+                Align = TextAnchor.UpperLeft
+            }.Size(FigmaSize.Hug, FigmaSize.Hug));
+            
+            frame.Add(ToggleBox);
+
+            if (additional)
+            {
+                var additionalButton = new FigmaFrame(default)
+                {
+                    Layout = FigmaLayout.Horizontal,
+                    MainAlign = FigmaAlign.Center,
+                    CrossAlign = FigmaAlign.Center,
+                    Bounds = new Rect(0f, 0f, 206f, 26f),
+                }.Size(FigmaSize.Fixed, FigmaSize.Fixed);
+
+                // button takes int input from user when clicked, and is toggled color by the bool conf entry
+                additionalButton.Add(Helpers.Button($"{additionalConf.Value}", conf.Value, fontSize, () => additionalConf.Value = conf.Value ? additionalConf.Value : 0));
+                frame.Add(additionalButton);
+            }
 
             return frame;
         }
