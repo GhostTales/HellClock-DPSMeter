@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BepInEx.Configuration;
 using FrameUI;
 using UnityEngine;
 
@@ -95,21 +96,96 @@ namespace DPSMeter
         public static FigmaFrame Button(string text, bool selected, int fontSize, Action clicked)
         {
             var border = selected ? Primary : Secondary;
-            var button = new FigmaFrame(new Rect(0f, 0f, 0f, 30f))
+            var button = new FigmaFrame(new Rect(0f, 0f, 30f, 26f))
             {
                 Layout = FigmaLayout.Vertical,
                 MainAlign = FigmaAlign.Center,
                 CrossAlign = FigmaAlign.Center,
                 Padding = new Vector4(0f, 0f, 0f, 0f),
                 Border = border,
-                BorderWidths = new Vector4(0f, 0f, 0f, 1f),
-                //CornerRadius = 2f,
-                Gap = 20f,
-                Fill = Background,
+                BorderWidths = new Vector4(1f, 1f, 1f, 1f),
+                CornerRadius = 2f,
+                MinWidth = 30f,
+                MinHeight = 26f,
                 Clicked = clicked,
             }.Size(FigmaSize.Hug, FigmaSize.Hug);
             button.Add(new FigmaText(default, text, fontSize, border, TextAnchor.MiddleCenter).Size(FigmaSize.Hug, FigmaSize.Hug));
             return button;
+        }
+
+        // The tree is rebuilt on every GUI event, so the entry being edited lives in statics.
+        static ConfigEntry<int> _editing;
+        static string _editBuffer = "";
+        static FigmaFrame _editFrame;
+        const int MaxDigits = 9;
+
+        /// <summary>
+        /// A button showing an int config value. Clicking it lets the user type a new number:
+        /// Enter (or clicking elsewhere) applies it (raised to minValue if lower), Escape cancels. Does nothing while disabled.
+        /// </summary>
+        public static FigmaFrame NumberButton(ConfigEntry<int> conf, bool enabled, int fontSize, int minValue)
+        {
+            if (_editing == conf && !enabled) _editing = null;
+            if (_editing == conf) HandleEditInput(conf, minValue);
+
+            bool editing = _editing == conf;
+            string text = $"{conf.Value}";
+            if (editing)
+                text = _editBuffer + (Mathf.FloorToInt(Time.unscaledTime * 2f) % 2 == 0 ? "|" : " ");
+
+            var button = Button(text, enabled, fontSize, () =>
+            {
+                if (!enabled) return;
+                if (_editing == conf) CommitEdit(conf, minValue);
+                else
+                {
+                    _editing = conf;
+                    _editBuffer = "";
+                }
+            });
+            if (editing) _editFrame = button;
+            return button;
+        }
+
+        static void HandleEditInput(ConfigEntry<int> conf, int minValue)
+        {
+            var e = Event.current;
+            if (e == null) return;
+
+            if (e.type == EventType.MouseDown && _editFrame != null && !_editFrame.LayoutRect.Contains(e.mousePosition))
+            {
+                CommitEdit(conf, minValue);
+                return;
+            }
+            if (e.type != EventType.KeyDown) return;
+
+            if (e.keyCode == KeyCode.Return || e.keyCode == KeyCode.KeypadEnter)
+            {
+                CommitEdit(conf, minValue);
+                e.Use();
+            }
+            else if (e.keyCode == KeyCode.Escape)
+            {
+                _editing = null;
+                e.Use();
+            }
+            else if (e.keyCode == KeyCode.Backspace)
+            {
+                if (_editBuffer.Length > 0) _editBuffer = _editBuffer.Substring(0, _editBuffer.Length - 1);
+                e.Use();
+            }
+            else if (e.character >= '0' && e.character <= '9')
+            {
+                if (_editBuffer.Length < MaxDigits) _editBuffer += e.character;
+                e.Use();
+            }
+        }
+
+        static void CommitEdit(ConfigEntry<int> conf, int minValue)
+        {
+            // The entry's setter additionally clamps to its AcceptableValueRange, if any.
+            if (int.TryParse(_editBuffer, out var value)) conf.Value = Mathf.Max(value, minValue);
+            _editing = null;
         }
 
         public static FigmaFrame ToggleButton(bool selected, Action clicked)
