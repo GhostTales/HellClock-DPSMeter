@@ -95,7 +95,7 @@ namespace DPSMeter.Windows.DPSMeterWindow
             header.Add(buttonRow);
 
 
-            if (ConfigOpen)
+            if (ConfigOpen && !Minimal)
             {
                 ConfigWindow();
             }
@@ -400,14 +400,16 @@ namespace DPSMeter.Windows.DPSMeterWindow
                 Layout = FigmaLayout.Vertical,
                 MainAlign = FigmaAlign.Start,
                 CrossAlign = FigmaAlign.Start,
-                Bounds = new Rect(0f, 0f, 459f, 0f),
+                Bounds = new Rect(0f, 0f, 459f, 477f),
                 Gap = 20f,
                 Padding = new Vector4(10f, 10f, 10f, 10f),
             }.Size(FigmaSize.Fixed, FigmaSize.Hug));
 
             configWindow.Add(ConfigWindowAutoRecording());
 
-            configWindow.Add(Helpers.ToggleButton(Plugin.DebugWireframe.Value, ToggleWireframe));
+            configWindow.Add(ConfigWindowHotkeys());
+
+            configWindow.Add(ConfigWindowDebugging());
 
             return configWindow;
         }
@@ -419,7 +421,7 @@ namespace DPSMeter.Windows.DPSMeterWindow
                 Layout = FigmaLayout.Vertical,
                 Bounds = new Rect(0f, 0f, 439f, 103f),
                 Gap = 10f,
-            }.Size(FigmaSize.Fixed, FigmaSize.Fixed);
+            }.Size(FigmaSize.Fixed, FigmaSize.Hug);
 
             var titleBox = new FigmaFrame(default)
             {
@@ -451,6 +453,87 @@ namespace DPSMeter.Windows.DPSMeterWindow
             return frame;
         }
 
+        private FigmaFrame ConfigWindowHotkeys()
+        {
+            var frame = new FigmaFrame(default)
+            {
+                Layout = FigmaLayout.Vertical,
+                Bounds = new Rect(0f, 0f, 439f, 139f),
+                Gap = 10f,
+            }.Size(FigmaSize.Fixed, FigmaSize.Hug);
+
+            var titleBox = new FigmaFrame(default)
+            {
+                Layout = FigmaLayout.Vertical,
+                MainAlign = FigmaAlign.Start,
+                CrossAlign = FigmaAlign.Start,
+                Bounds = new Rect(0f, 0f, 132f, 36f),
+                Gap = 5f,
+            }.Size(FigmaSize.Hug, FigmaSize.Fixed);
+
+
+            titleBox.Add(ForceTextHeightBox(14, 132, "Hotkeys", Primary, BundledFont.Bold));
+            titleBox.Add(ForceTextHeightBox(12, 132, "Left-click to bind, right-click to unbind", Secondary, BundledFont.Regular));
+
+            frame.Add(titleBox);
+
+            var HotkeysBox = new FigmaFrame(default)
+            {
+                Layout = FigmaLayout.Vertical,
+                Bounds = new Rect(0f, 0f, _window.Rect.width, 62f),
+                Gap = 10f,
+            }.Size(FigmaSize.Fill, FigmaSize.Hug);
+
+            HotkeysBox.Add(SettingsHotkey(Plugin.StopRecording, "Stop Recording", 16));
+            HotkeysBox.Add(SettingsHotkey(Plugin.ResetKey, "Reset & Arm recording", 16));
+            HotkeysBox.Add(SettingsHotkey(Plugin.MinimalistMode, "Minimalist Mode", 16));
+            HotkeysBox.Add(SettingsHotkey(Plugin.ToggleKey, "Hide/Show DPS Meter", 16));
+
+            frame.Add(HotkeysBox);
+            return frame;
+        }
+
+
+        private FigmaFrame ConfigWindowDebugging()
+        {
+            var frame = new FigmaFrame(default)
+            {
+                Layout = FigmaLayout.Vertical,
+                Bounds = new Rect(0f, 0f, 439f, 139f),
+                Gap = 10f,
+            }.Size(FigmaSize.Fixed, FigmaSize.Hug);
+
+            var titleBox = new FigmaFrame(default)
+            {
+                Layout = FigmaLayout.Vertical,
+                MainAlign = FigmaAlign.Start,
+                CrossAlign = FigmaAlign.Start,
+                Bounds = new Rect(0f, 0f, 132f, 36f),
+                Gap = 5f,
+            }.Size(FigmaSize.Hug, FigmaSize.Fixed);
+
+
+            titleBox.Add(ForceTextHeightBox(14, 132, "Debugging", Primary, BundledFont.Bold));
+            titleBox.Add(ForceTextHeightBox(12, 132, "Enable or disable debugging features", Secondary, BundledFont.Regular));
+
+            frame.Add(titleBox);
+
+            var TogglesBox = new FigmaFrame(default)
+            {
+                Layout = FigmaLayout.Vertical,
+                Bounds = new Rect(0f, 0f, _window.Rect.width, 62f),
+                Gap = 10f,
+            }.Size(FigmaSize.Fill, FigmaSize.Hug);
+
+            TogglesBox.Add(SettingsToggle(Plugin.DebugWireframe, "Wireframe Mode", 16));
+            TogglesBox.Add(SettingsToggle(Plugin.CapOverkill, "Cap Overkill Damage", 16));
+            TogglesBox.Add(SettingsToggle(Plugin.LinearTextFix, "Linear Text Colour Fix", 16));
+            TogglesBox.Add(SettingsInput(Plugin.UiScale, "UI Scale", 16, 0.25f, 4f));
+
+            frame.Add(TogglesBox);
+
+            return frame;
+        }
 
         private void OpenAdvancedBreakdown()
         {
@@ -459,15 +542,9 @@ namespace DPSMeter.Windows.DPSMeterWindow
 
         static void OpenConfig() 
         {
-            //ToggleWireframe();
             ToggleConfig();
         }
 
-        static void ToggleWireframe()
-        {
-            FigmaFrame.Wireframe = !FigmaFrame.Wireframe;
-            Plugin.DebugWireframe.Value = FigmaFrame.Wireframe;
-        }
 
         public void Render()
         {
@@ -673,7 +750,6 @@ namespace DPSMeter.Windows.DPSMeterWindow
                 Bounds = new Rect(0f, 0f, 0f, fontSize),
             }.Size(FigmaSize.Hug, FigmaSize.Hug));
 
-            //ToggleBox.Add(ForceTextHeightBox(fontSize, 0, label, conf.Value ? Text : Secondary, BundledFont.Light));
             
             frame.Add(ToggleBox);
 
@@ -688,8 +764,6 @@ namespace DPSMeter.Windows.DPSMeterWindow
                     Gap = 5f,
                 }.Size(FigmaSize.Hug, FigmaSize.Fixed);
 
-                //additionalFrame.Add(ForceTextHeightBox(fontSize, 0, additionalLabel, conf.Value ? Text : Secondary, BundledFont.Light));
-
                 additionalFrame.Add(new FigmaText(default, additionalLabel, fontSize, conf.Value ? Text : Secondary)
                 {
                     Font = BundledFont.Light,
@@ -700,6 +774,72 @@ namespace DPSMeter.Windows.DPSMeterWindow
                 additionalFrame.Add(Helpers.NumberButton(additionalConf, conf.Value, fontSize, additionalMinValue));
                 frame.Add(additionalFrame);
             }
+
+            return frame;
+        }
+    
+        static FigmaFrame SettingsHotkey(ConfigEntry<KeyCode> conf, string label, int fontSize)
+        {
+            var frame = new FigmaFrame(default)
+            {
+                Layout = FigmaLayout.Horizontal,
+                MainAlign = FigmaAlign.SpaceBetween,
+                CrossAlign = FigmaAlign.Center,
+                Bounds = new Rect(0f, 0f, 0f, 26f),
+            }.Size(FigmaSize.Fill, FigmaSize.Fixed);
+
+            var LabelBox = new FigmaFrame(default)
+            {
+                Layout = FigmaLayout.Horizontal,
+                MainAlign = FigmaAlign.Start,
+                CrossAlign = FigmaAlign.Center,
+                Bounds = new Rect(0f, 0f, 0f, 20f),
+                Gap = 5f,
+            }.Size(FigmaSize.Hug, FigmaSize.Fixed);
+
+            LabelBox.Add(new FigmaText(default, label, fontSize, Text)
+            {
+                Font = BundledFont.Light,
+                Align = TextAnchor.MiddleLeft,
+                Bounds = new Rect(0f, 0f, 0f, fontSize),
+            }.Size(FigmaSize.Hug, FigmaSize.Hug));
+
+
+            frame.Add(LabelBox);
+            frame.Add(Helpers.HotkeyButton(conf, conf.Value, fontSize));
+            
+
+            return frame;
+        }
+
+        static FigmaFrame SettingsInput(ConfigEntry<float> conf, string label, int fontSize, float minValue, float maxValue)
+        {
+            var frame = new FigmaFrame(default)
+            {
+                Layout = FigmaLayout.Horizontal,
+                MainAlign = FigmaAlign.SpaceBetween,
+                CrossAlign = FigmaAlign.Center,
+                Bounds = new Rect(0f, 0f, 0f, 26f),
+            }.Size(FigmaSize.Fill, FigmaSize.Fixed);
+
+            var LabelBox = new FigmaFrame(default)
+            {
+                Layout = FigmaLayout.Horizontal,
+                MainAlign = FigmaAlign.Start,
+                CrossAlign = FigmaAlign.Center,
+                Bounds = new Rect(0f, 0f, 0f, 20f),
+                Gap = 5f,
+            }.Size(FigmaSize.Hug, FigmaSize.Fixed);
+
+            LabelBox.Add(new FigmaText(default, label, fontSize, Text)
+            {
+                Font = BundledFont.Light,
+                Align = TextAnchor.MiddleLeft,
+                Bounds = new Rect(0f, 0f, 0f, fontSize),
+            }.Size(FigmaSize.Hug, FigmaSize.Hug));
+
+            frame.Add(LabelBox);
+            //frame.Add(Helpers.NumberButton(conf, true, fontSize, Mathf.FloorToInt(minValue)));
 
             return frame;
         }
