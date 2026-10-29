@@ -414,14 +414,14 @@ namespace DPSMeter.Windows.DPSMeterWindow
 
         private FigmaFrame ConfigWindowAutoRecording()
         {
-            var autoRecordingWindow = new FigmaFrame(default)
+            var frame = new FigmaFrame(default)
             {
                 Layout = FigmaLayout.Vertical,
                 Bounds = new Rect(0f, 0f, 439f, 103f),
                 Gap = 10f,
             }.Size(FigmaSize.Fixed, FigmaSize.Fixed);
 
-            var autoRecordingTitleBox = new FigmaFrame(default)
+            var titleBox = new FigmaFrame(default)
             {
                 Layout = FigmaLayout.Vertical,
                 MainAlign = FigmaAlign.Start,
@@ -431,44 +431,24 @@ namespace DPSMeter.Windows.DPSMeterWindow
             }.Size(FigmaSize.Hug, FigmaSize.Fixed);
 
 
-            autoRecordingTitleBox.Add(ForceTextHeightBox(14, 132, "Automatic Recording", Primary, BundledFont.Bold));
-            autoRecordingTitleBox.Add(ForceTextHeightBox(12, 132, "Toggle and edit timings", Secondary, BundledFont.Regular));
+            titleBox.Add(ForceTextHeightBox(14, 132, "Automatic Recording", Primary, BundledFont.Bold));
+            titleBox.Add(ForceTextHeightBox(12, 132, "Toggle and edit timings", Secondary, BundledFont.Regular));
 
-            autoRecordingWindow.Add(autoRecordingTitleBox);
+            frame.Add(titleBox);
 
-            var configTogglesBox = new FigmaFrame(default)
+            var TogglesBox = new FigmaFrame(default)
             {
                 Layout = FigmaLayout.Vertical,
                 Bounds = new Rect(0f, 0f, _window.Rect.width, 62f),
                 Gap = 10f,
             }.Size(FigmaSize.Fill, FigmaSize.Fixed);
 
-            // var autoArmToggleBox = new FigmaFrame(default)
-            // {
-            //     Layout = FigmaLayout.Horizontal,
-            //     MainAlign = FigmaAlign.Center,
-            //     CrossAlign = FigmaAlign.Start,
-            //     Bounds = new Rect(0f, 0f, 206f, 20f),
-            //     Gap = 5f,
-            // }.Size(FigmaSize.Fixed, FigmaSize.Fixed);
+            TogglesBox.Add(SettingsToggle(Plugin.AutoArm, "Arm recording automatically", 16));
+            TogglesBox.Add(SettingsToggle(Plugin.AutoStop, "Stop recording automatically after:", 16, true, Plugin.IdleTimeout, "Min 5 seconds", 5));
 
-            // autoArmToggleBox.Add(Helpers.ToggleButton(Plugin.AutoArm.Value, () => Plugin.AutoArm.Value = !Plugin.AutoArm.Value));
+            frame.Add(TogglesBox);
 
-            // autoArmToggleBox.Add(new FigmaText(default, "Arm recording automatically", 16, Text)
-            // {
-            //     Font = BundledFont.Regular,
-            //     Bounds = new Rect(0f, 0f, 181f, 16f),
-            //     Align = TextAnchor.MiddleLeft
-            // }.Size(FigmaSize.Hug, FigmaSize.Hug));
-
-            configTogglesBox.Add(SettingsToggle(Plugin.AutoArm, "Arm recording automatically", 16));
-            configTogglesBox.Add(SettingsToggle(Plugin.AutoStop, "Stop recording automatically after:", 16, true, Plugin.IdleTimeout, "Min 5 seconds", 5));
-
-            // configTogglesBox.Add(autoArmToggleBox);
-    
-            autoRecordingWindow.Add(configTogglesBox);
-
-            return autoRecordingWindow;
+            return frame;
         }
 
 
