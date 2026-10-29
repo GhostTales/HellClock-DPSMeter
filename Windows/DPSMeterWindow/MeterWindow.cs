@@ -52,8 +52,10 @@ namespace DPSMeter.Windows.DPSMeterWindow
                     new Rect(20f, 200f, DefaultWidth, DefaultHeight),
                     new Vector2(DefaultWidth, DefaultHeight),
                     Draw) { AutoHeight = true, AutoWidth = true };
-            }
 
+
+            }
+            FigmaFrame.Wireframe = Plugin.DebugWireframe.Value;
             _window.Render();
         }
 
