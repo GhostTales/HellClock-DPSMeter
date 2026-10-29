@@ -65,8 +65,8 @@ namespace DPSMeter
             DebugWireframe = Config.Bind("Debug", "Wireframe", false, "Draw the layout as a wireframe (outlines of every frame)");
             UiScale = Config.Bind("Display", "UiScale", 1f, new ConfigDescription(
                 "Scales all UI. The UI is designed for 1920x1080 at 1.0; use e.g. 1.33 on 2560x1440 or 2.0 on 3840x2160",
-                new AcceptableValueRange<float>(0.25f, 4f)));
-            LogUniqueHits = Config.Bind("Debug", "LogUniqueHits", false, "Log the skill, source and icon details the first time each distinct damage source is seen");
+                new AcceptableValueRange<float>(0.25f, 2f)));
+            LogUniqueHits = Config.Bind("Debug", "LogUniqueHits", false, "Logs the skill, source and icon details the first time each distinct damage source is seen");
             
             FigmaFrame.Wireframe = DebugWireframe.Value;
             
