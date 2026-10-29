@@ -419,7 +419,7 @@ namespace DPSMeter.Windows.DPSMeterWindow
                 Layout = FigmaLayout.Vertical,
                 Bounds = new Rect(0f, 0f, 439f, 103f),
                 Gap = 10f,
-            }.Size(FigmaSize.Hug, FigmaSize.Fixed);
+            }.Size(FigmaSize.Fixed, FigmaSize.Fixed);
 
             var autoRecordingTitleBox = new FigmaFrame(default)
             {
@@ -443,26 +443,29 @@ namespace DPSMeter.Windows.DPSMeterWindow
                 Gap = 10f,
             }.Size(FigmaSize.Fill, FigmaSize.Fixed);
 
-            var autoArmToggleBox = new FigmaFrame(default)
-            {
-                Layout = FigmaLayout.Horizontal,
-                MainAlign = FigmaAlign.Center,
-                CrossAlign = FigmaAlign.Start,
-                Bounds = new Rect(0f, 0f, 206f, 20f),
-                Gap = 5f,
-            }.Size(FigmaSize.Fixed, FigmaSize.Fixed);
+            // var autoArmToggleBox = new FigmaFrame(default)
+            // {
+            //     Layout = FigmaLayout.Horizontal,
+            //     MainAlign = FigmaAlign.Center,
+            //     CrossAlign = FigmaAlign.Start,
+            //     Bounds = new Rect(0f, 0f, 206f, 20f),
+            //     Gap = 5f,
+            // }.Size(FigmaSize.Fixed, FigmaSize.Fixed);
 
-            autoArmToggleBox.Add(Helpers.ToggleButton(Plugin.AutoArm.Value, () => Plugin.AutoArm.Value = !Plugin.AutoArm.Value));
+            // autoArmToggleBox.Add(Helpers.ToggleButton(Plugin.AutoArm.Value, () => Plugin.AutoArm.Value = !Plugin.AutoArm.Value));
 
-            autoArmToggleBox.Add(new FigmaText(default, "Arm recording automatically", 16, Text)
-            {
-                Font = BundledFont.Regular,
-                Bounds = new Rect(0f, 0f, 181f, 16f),
-                Align = TextAnchor.MiddleLeft
-            }.Size(FigmaSize.Hug, FigmaSize.Hug));
+            // autoArmToggleBox.Add(new FigmaText(default, "Arm recording automatically", 16, Text)
+            // {
+            //     Font = BundledFont.Regular,
+            //     Bounds = new Rect(0f, 0f, 181f, 16f),
+            //     Align = TextAnchor.MiddleLeft
+            // }.Size(FigmaSize.Hug, FigmaSize.Hug));
 
-            configTogglesBox.Add(autoArmToggleBox);
+            configTogglesBox.Add(SettingsToggle(Plugin.AutoArm, "Arm recording automatically", 16));
+            configTogglesBox.Add(SettingsToggle(Plugin.AutoStop, "Stop recording automatically after:", 16, true, Plugin.IdleTimeout, "Min 5 seconds", 5));
 
+            // configTogglesBox.Add(autoArmToggleBox);
+    
             autoRecordingWindow.Add(configTogglesBox);
 
             return autoRecordingWindow;
@@ -662,7 +665,7 @@ namespace DPSMeter.Windows.DPSMeterWindow
             return frame;
         }
 
-        static FigmaFrame SettingsToggle(ConfigEntry<bool> conf, string label, int fontSize, bool additional, ConfigEntry<int> additionalConf, string additionalLabel = "")
+        static FigmaFrame SettingsToggle(ConfigEntry<bool> conf, string label, int fontSize, bool additional = false, ConfigEntry<int> additionalConf = null, string additionalLabel = "", int additionalMinValue = 0)
         {
             var frame = new FigmaFrame(default)
             {
@@ -675,36 +678,47 @@ namespace DPSMeter.Windows.DPSMeterWindow
             var ToggleBox = new FigmaFrame(default)
             {
                 Layout = FigmaLayout.Horizontal,
-                MainAlign = FigmaAlign.Center,
+                MainAlign = FigmaAlign.Start,
                 CrossAlign = FigmaAlign.Center,
-                Bounds = new Rect(0f, 0f, 92f, 20f),
+                Bounds = new Rect(0f, 0f, 0f, 20f),
                 Gap = 5f,
-            }.Size(FigmaSize.Fixed, FigmaSize.Fixed);
+            }.Size(FigmaSize.Hug, FigmaSize.Fixed);
 
             ToggleBox.Add(Helpers.ToggleButton(conf.Value, () => conf.Value = !conf.Value));
 
             ToggleBox.Add(new FigmaText(default, label, fontSize, conf.Value ? Text : Secondary)
             {
-                Font = BundledFont.Regular,
-                Bounds = new Rect(0f, 0f, 181f, fontSize),
-                Align = TextAnchor.UpperLeft
+                Font = BundledFont.Light,
+                Align = TextAnchor.MiddleLeft,
+                Bounds = new Rect(0f, 0f, 0f, fontSize),
             }.Size(FigmaSize.Hug, FigmaSize.Hug));
+
+            //ToggleBox.Add(ForceTextHeightBox(fontSize, 0, label, conf.Value ? Text : Secondary, BundledFont.Light));
             
             frame.Add(ToggleBox);
 
             if (additional)
             {
-                var additionalButton = new FigmaFrame(default)
+                var additionalFrame = new FigmaFrame(default)
                 {
                     Layout = FigmaLayout.Horizontal,
                     MainAlign = FigmaAlign.Center,
                     CrossAlign = FigmaAlign.Center,
-                    Bounds = new Rect(0f, 0f, 206f, 26f),
-                }.Size(FigmaSize.Fixed, FigmaSize.Fixed);
+                    Bounds = new Rect(0f, 0f, 0f, 26f),
+                    Gap = 5f,
+                }.Size(FigmaSize.Hug, FigmaSize.Fixed);
 
-                // button takes int input from user when clicked, and is toggled color by the bool conf entry
-                additionalButton.Add(Helpers.Button($"{additionalConf.Value}", conf.Value, fontSize, () => additionalConf.Value = conf.Value ? additionalConf.Value : 0));
-                frame.Add(additionalButton);
+                //additionalFrame.Add(ForceTextHeightBox(fontSize, 0, additionalLabel, conf.Value ? Text : Secondary, BundledFont.Light));
+
+                additionalFrame.Add(new FigmaText(default, additionalLabel, fontSize, conf.Value ? Text : Secondary)
+                {
+                    Font = BundledFont.Light,
+                    Align = TextAnchor.MiddleLeft,
+                    Bounds = new Rect(0f, 0f, 0f, fontSize),
+                }.Size(FigmaSize.Hug, FigmaSize.Hug));
+                
+                additionalFrame.Add(Helpers.NumberButton(additionalConf, conf.Value, fontSize, additionalMinValue));
+                frame.Add(additionalFrame);
             }
 
             return frame;
