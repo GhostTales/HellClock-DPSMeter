@@ -69,8 +69,11 @@ namespace DPSMeter
             LogUniqueHits = Config.Bind("Debug", "LogUniqueHits", false, "Log the skill, source and icon details the first time each distinct damage source is seen");
             
             FigmaFrame.Wireframe = DebugWireframe.Value;
+            
             Gui.LinearTextFix = LinearTextFix.Value;
             Gui.Scale = UiScale.Value;
+
+            LinearTextFix.SettingChanged += (_, __) => Gui.LinearTextFix = LinearTextFix.Value;
             UiScale.SettingChanged += (_, __) => Gui.Scale = UiScale.Value;
             Gui.Warn = Logger.LogWarning;
             try
