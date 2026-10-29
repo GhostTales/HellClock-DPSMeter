@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using BepInEx.Configuration;
@@ -108,13 +109,15 @@ namespace DPSMeter
                 MinWidth = 30f,
                 MinHeight = 26f,
                 Clicked = clicked,
+                HoverTint = Dimmed,
+                PressedTint = Pressed,
             }.Size(FigmaSize.Hug, FigmaSize.Hug);
             button.Add(new FigmaText(default, text, fontSize, border, TextAnchor.MiddleCenter).Size(FigmaSize.Hug, FigmaSize.Hug));
             return button;
         }
 
         // The tree is rebuilt on every GUI event, so the entry being edited lives in statics.
-        static ConfigEntry<int> _editing;
+        static ConfigEntryBase _editing;
         static string _editBuffer = "";
         static FigmaFrame _editFrame;
         const int MaxDigits = 5;
@@ -123,20 +126,29 @@ namespace DPSMeter
         /// A button showing an int config value. Clicking it lets the user type a new number:
         /// Enter (or clicking elsewhere) applies it (raised to minValue if lower), Escape cancels. Does nothing while disabled.
         /// </summary>
-        public static FigmaFrame NumberButton(ConfigEntry<int> conf, bool enabled, int fontSize, int minValue)
+        public static FigmaFrame NumberButton(ConfigEntry<int> conf, bool enabled, int fontSize, int minValue, int maxValue) =>
+            NumberButtonCore(conf, enabled, fontSize, false, conf.Value.ToString(),
+                buffer => { if (int.TryParse(buffer, NumberStyles.None, CultureInfo.InvariantCulture, out var v)) conf.Value = Mathf.Max(Mathf.Min(v, maxValue), minValue); });
+
+        /// <summary>Same as the int overload, but also accepts a decimal point.</summary>
+        public static FigmaFrame NumberButton(ConfigEntry<float> conf, bool enabled, int fontSize, float minValue, float maxValue) =>
+            NumberButtonCore(conf, enabled, fontSize, true, conf.Value.ToString("0.##", CultureInfo.InvariantCulture),
+                buffer => { if (float.TryParse(buffer, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var v)) conf.Value = Mathf.Max(Mathf.Min(v, maxValue), minValue); });
+
+        static FigmaFrame NumberButtonCore(ConfigEntryBase conf, bool enabled, int fontSize, bool allowDecimal, string valueText, Action<string> apply)
         {
             if (_editing == conf && !enabled) _editing = null;
-            if (_editing == conf) HandleEditInput(conf, minValue);
+            if (_editing == conf) HandleEditInput(conf, allowDecimal, apply);
 
             bool editing = _editing == conf;
-            string text = $"{conf.Value}";
+            string text = valueText;
             if (editing)
                 text = _editBuffer + (Mathf.FloorToInt(Time.unscaledTime * 2f) % 2 == 0 ? "|" : " ");
 
             var button = Button(text, enabled, fontSize, () =>
             {
                 if (!enabled) return;
-                if (_editing == conf) CommitEdit(conf, minValue);
+                if (_editing == conf) CommitEdit(apply);
                 else
                 {
                     _editing = conf;
@@ -183,7 +195,7 @@ namespace DPSMeter
                 _listening = conf;
                 _editing = null;
             });
-            button.MinWidth = 75f;
+            button.MinWidth = 85f;
 
             HotkeyFrames[conf] = button;
             if (listening) _listenFrame = button;
@@ -210,21 +222,21 @@ namespace DPSMeter
             e.Use();
         }
 
-        static void HandleEditInput(ConfigEntry<int> conf, int minValue)
+        static void HandleEditInput(ConfigEntryBase conf, bool allowDecimal, Action<string> apply)
         {
             var e = Event.current;
             if (e == null) return;
 
             if (e.type == EventType.MouseDown && _editFrame != null && !_editFrame.LayoutRect.Contains(e.mousePosition))
             {
-                CommitEdit(conf, minValue);
+                CommitEdit(apply);
                 return;
             }
             if (e.type != EventType.KeyDown) return;
 
             if (e.keyCode == KeyCode.Return || e.keyCode == KeyCode.KeypadEnter)
             {
-                CommitEdit(conf, minValue);
+                CommitEdit(apply);
                 e.Use();
             }
             else if (e.keyCode == KeyCode.Escape)
@@ -242,12 +254,17 @@ namespace DPSMeter
                 if (_editBuffer.Length < MaxDigits) _editBuffer += e.character;
                 e.Use();
             }
+            else if (allowDecimal && (e.character == '.' || e.character == ',') && _editBuffer.IndexOf('.') < 0)
+            {
+                if (_editBuffer.Length < MaxDigits) _editBuffer += _editBuffer.Length == 0 ? "0." : ".";
+                e.Use();
+            }
         }
 
-        static void CommitEdit(ConfigEntry<int> conf, int minValue)
+        static void CommitEdit(Action<string> apply)
         {
             // The entry's setter additionally clamps to its AcceptableValueRange, if any.
-            if (int.TryParse(_editBuffer, out var value)) conf.Value = Mathf.Max(value, minValue);
+            apply(_editBuffer);
             _editing = null;
         }
 
