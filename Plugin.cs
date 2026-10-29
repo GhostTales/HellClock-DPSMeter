@@ -16,7 +16,7 @@ namespace DPSMeter
         internal static ConfigEntry<KeyCode> ToggleKey;
         internal static ConfigEntry<KeyCode> ResetKey;
         internal static ConfigEntry<bool> AutoStop;
-        internal static ConfigEntry<float> IdleTimeout;
+        internal static ConfigEntry<int> IdleTimeout;
         internal static ConfigEntry<bool> AutoArm;
         internal static ConfigEntry<KeyCode> StopRecording;
         internal static ConfigEntry<bool> CapOverkill;
@@ -54,7 +54,7 @@ namespace DPSMeter
             MinimalistMode = Config.Bind("Meter", "MinimalistMode", KeyCode.F11, "Toggle minimalist mode for the UI");
             
             AutoStop = Config.Bind("Meter", "AutoStop", true, "Automatically stop the meter when leaving combat, after idle timeout");
-            IdleTimeout = Config.Bind("Meter", "IdleTimeout", 5f, "Seconds without dealing damage before the fight timer stops");
+            IdleTimeout = Config.Bind("Meter", "IdleTimeout", 5, "Seconds without dealing damage before the fight timer stops");
 
             AutoArm = Config.Bind("Meter", "AutoArm", true, "Automatically arm the meter when entering combat");
             
