@@ -525,10 +525,12 @@ namespace DPSMeter.Windows.DPSMeterWindow
                 Gap = 10f,
             }.Size(FigmaSize.Fill, FigmaSize.Hug);
 
+            TogglesBox.Add(SettingsInput(Plugin.UiScale, "UI Scale", 16, 0.25f, 2f));
             TogglesBox.Add(SettingsToggle(Plugin.DebugWireframe, "Wireframe Mode", 16));
             TogglesBox.Add(SettingsToggle(Plugin.CapOverkill, "Cap Overkill Damage", 16));
             TogglesBox.Add(SettingsToggle(Plugin.LinearTextFix, "Linear Text Colour Fix", 16));
-            TogglesBox.Add(SettingsInput(Plugin.UiScale, "UI Scale", 16, 0.25f, 4f));
+            TogglesBox.Add(SettingsToggle(Plugin.LogUniqueHits, "Log Unique Hits", 16));
+            
 
             frame.Add(TogglesBox);
 
@@ -722,7 +724,7 @@ namespace DPSMeter.Windows.DPSMeterWindow
             return frame;
         }
 
-        static FigmaFrame SettingsToggle(ConfigEntry<bool> conf, string label, int fontSize, bool additional = false, ConfigEntry<int> additionalConf = null, string additionalLabel = "", int additionalMinValue = 0)
+        static FigmaFrame SettingsToggle(ConfigEntry<bool> conf, string label, int fontSize, bool additional = false, ConfigEntry<int> additionalConf = null, string additionalLabel = "", int additionalMinValue = 0, int additionalMaxValue = int.MaxValue)
         {
             var frame = new FigmaFrame(default)
             {
@@ -771,7 +773,7 @@ namespace DPSMeter.Windows.DPSMeterWindow
                     Bounds = new Rect(0f, 0f, 0f, fontSize),
                 }.Size(FigmaSize.Hug, FigmaSize.Hug));
                 
-                additionalFrame.Add(Helpers.NumberButton(additionalConf, conf.Value, fontSize, additionalMinValue));
+                additionalFrame.Add(Helpers.NumberButton(additionalConf, conf.Value, fontSize, additionalMinValue, additionalMaxValue));
                 frame.Add(additionalFrame);
             }
 
@@ -839,7 +841,28 @@ namespace DPSMeter.Windows.DPSMeterWindow
             }.Size(FigmaSize.Hug, FigmaSize.Hug));
 
             frame.Add(LabelBox);
-            //frame.Add(Helpers.NumberButton(conf, true, fontSize, Mathf.FloorToInt(minValue)));
+
+            var InputBox = new FigmaFrame(default)
+            {
+                Layout = FigmaLayout.Horizontal,
+                MainAlign = FigmaAlign.Start,
+                CrossAlign = FigmaAlign.Center,
+                Bounds = new Rect(0f, 0f, 0f, 20f),
+                Gap = 5f,
+            }.Size(FigmaSize.Hug, FigmaSize.Fixed);
+
+            InputBox.Add(new FigmaText(default, $"Range {minValue} - {maxValue}", fontSize, Text)
+            {
+                Font = BundledFont.Light,
+                Align = TextAnchor.MiddleLeft,
+                Bounds = new Rect(0f, 0f, 0f, fontSize),
+            }.Size(FigmaSize.Hug, FigmaSize.Hug));
+
+
+            InputBox.Add(Helpers.NumberButton(conf, true, fontSize, minValue, maxValue));
+
+            frame.Add(InputBox);
+            
 
             return frame;
         }
