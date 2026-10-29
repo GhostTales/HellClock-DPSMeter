@@ -101,7 +101,7 @@ namespace DPSMeter
                 Layout = FigmaLayout.Vertical,
                 MainAlign = FigmaAlign.Center,
                 CrossAlign = FigmaAlign.Center,
-                Padding = new Vector4(0f, 0f, 0f, 0f),
+                Padding = new Vector4(2f, 0f, 2f, 0f),
                 Border = border,
                 BorderWidths = new Vector4(1f, 1f, 1f, 1f),
                 CornerRadius = 2f,
