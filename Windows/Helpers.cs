@@ -101,7 +101,7 @@ namespace DPSMeter
                 Layout = FigmaLayout.Vertical,
                 MainAlign = FigmaAlign.Center,
                 CrossAlign = FigmaAlign.Center,
-                Padding = new Vector4(2f, 0f, 2f, 0f),
+                Padding = new Vector4(10f, 0f, 10f, 0f),
                 Border = border,
                 BorderWidths = new Vector4(1f, 1f, 1f, 1f),
                 CornerRadius = 2f,
@@ -117,7 +117,7 @@ namespace DPSMeter
         static ConfigEntry<int> _editing;
         static string _editBuffer = "";
         static FigmaFrame _editFrame;
-        const int MaxDigits = 9;
+        const int MaxDigits = 5;
 
         /// <summary>
         /// A button showing an int config value. Clicking it lets the user type a new number:
@@ -141,10 +141,73 @@ namespace DPSMeter
                 {
                     _editing = conf;
                     _editBuffer = "";
+                    _listening = null;
                 }
             });
             if (editing) _editFrame = button;
             return button;
+        }
+
+        static ConfigEntry<KeyCode> _listening;
+        static FigmaFrame _listenFrame;
+        static int _hotkeysSuspendedUntilFrame = -1;
+        static readonly Dictionary<ConfigEntry<KeyCode>, FigmaFrame> HotkeyFrames = new Dictionary<ConfigEntry<KeyCode>, FigmaFrame>();
+
+        /// <summary>Input.GetKeyDown for the plugin's hotkeys; ignored while a key is being bound so the new key doesn't fire its action.</summary>
+        public static bool HotkeyPressed(KeyCode key) =>
+            _listening == null && Time.frameCount > _hotkeysSuspendedUntilFrame && Input.GetKeyDown(key);
+
+        /// <summary>
+        /// A button showing a key config value. Clicking it waits for the next key press and binds it;
+        /// Escape or a click elsewhere cancels. Right-clicking it unbinds the key.
+        /// </summary>
+        public static FigmaFrame HotkeyButton(ConfigEntry<KeyCode> conf, KeyCode key, int fontSize)
+        {
+            // Frames only react to the left button, so the right click is checked against last event's layout.
+            var e = Event.current;
+            if (e != null && e.type == EventType.MouseDown && e.button == 1
+                && HotkeyFrames.TryGetValue(conf, out var previous) && previous.LayoutRect.Contains(e.mousePosition))
+            {
+                conf.Value = KeyCode.None;
+                key = KeyCode.None;
+                if (_listening == conf) _listening = null;
+                e.Use();
+            }
+
+            if (_listening == conf) HandleListenInput(conf);
+
+            bool listening = _listening == conf;
+            var button = Button(listening ? "Press a key" : key == KeyCode.None ? "Unbound" : key.ToString(), true, fontSize, () =>
+            {
+                if (_listening == conf) { _listening = null; return; }
+                _listening = conf;
+                _editing = null;
+            });
+            button.MinWidth = 75f;
+
+            HotkeyFrames[conf] = button;
+            if (listening) _listenFrame = button;
+            return button;
+        }
+
+ 
+
+        static void HandleListenInput(ConfigEntry<KeyCode> conf)
+        {
+            var e = Event.current;
+            if (e == null) return;
+
+            if (e.type == EventType.MouseDown && _listenFrame != null && !_listenFrame.LayoutRect.Contains(e.mousePosition))
+            {
+                _listening = null;
+                return;
+            }
+            if (e.type != EventType.KeyDown || e.keyCode == KeyCode.None) return;
+
+            if (e.keyCode != KeyCode.Escape) conf.Value = e.keyCode;
+            _listening = null;
+            _hotkeysSuspendedUntilFrame = Time.frameCount + 1;
+            e.Use();
         }
 
         static void HandleEditInput(ConfigEntry<int> conf, int minValue)
