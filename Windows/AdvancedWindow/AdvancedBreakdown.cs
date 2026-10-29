@@ -59,7 +59,7 @@ namespace DPSMeter.Windows.AdvancedWindow
 
         void Update()
         {
-            if (Input.GetKeyDown(Plugin.ToggleKey.Value)) { GlobalVisible = !GlobalVisible; Visible = GlobalVisible; }
+            if (Helpers.HotkeyPressed(Plugin.ToggleKey.Value)) { GlobalVisible = !GlobalVisible; Visible = GlobalVisible; }
         }
 
         void Draw(int id)

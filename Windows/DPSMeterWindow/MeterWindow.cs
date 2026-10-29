@@ -35,10 +35,10 @@ namespace DPSMeter.Windows.DPSMeterWindow
 
         void Update()
         {
-            if (Input.GetKeyDown(Plugin.ToggleKey.Value)) { GlobalVisible = !GlobalVisible; Visible = GlobalVisible; }
-            if (Input.GetKeyDown(Plugin.ResetKey.Value)) Tracker.Reset();
-            if (Input.GetKeyDown(Plugin.StopRecording.Value)) Tracker.StopRecording();
-            if (Input.GetKeyDown(Plugin.MinimalistMode.Value)) Plugin.Minimal = !Plugin.Minimal;
+            if (Helpers.HotkeyPressed(Plugin.ToggleKey.Value)) { GlobalVisible = !GlobalVisible; Visible = GlobalVisible; }
+            if (Helpers.HotkeyPressed(Plugin.ResetKey.Value)) Tracker.Reset();
+            if (Helpers.HotkeyPressed(Plugin.StopRecording.Value)) Tracker.StopRecording();
+            if (Helpers.HotkeyPressed(Plugin.MinimalistMode.Value)) Plugin.Minimal = !Plugin.Minimal;
         }
 
         void OnGUI()
