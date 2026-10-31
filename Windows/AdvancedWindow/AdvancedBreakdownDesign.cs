@@ -45,12 +45,25 @@ namespace DPSMeter.Windows.AdvancedWindow
 
             header.Add(buttonRow);
 
-            var linkTest = root.Add(new FigmaText(default, "Wiki", 14, Primary)
+            // var linkTest = root.Add(new FigmaText(default, "Wiki", 14, Primary)
+            // {
+            //     Clicked = () => Application.OpenURL("https://hellclock.wiki.gg/"),
+            //     HoverTint = Color.white * 1.2f,
+            //     PressedTint = new Color(0.55f, 0.55f, 0.55f, 1f)
+            // }.Size(FigmaSize.Hug, FigmaSize.Hug));
+
+            var content = root.Add(new FigmaFrame(default)
             {
-                Clicked = () => Application.OpenURL("https://hellclock.wiki.gg/"),
-                HoverTint = Color.white * 1.2f,
-                PressedTint = new Color(0.55f, 0.55f, 0.55f, 1f)
-            }.Size(FigmaSize.Hug, FigmaSize.Hug));
+                Layout = FigmaLayout.Vertical,
+                MainAlign = FigmaAlign.Center,
+                CrossAlign = FigmaAlign.Center,
+                Gap = 8f,
+                Padding = new Vector4(10, 10, 10, 10)
+            }.Size(FigmaSize.Fill, FigmaSize.Hug));
+
+            content.Add(new FigmaText(default, "Advanced breakdown is under construction.", 20, Primary){}.Size(FigmaSize.Hug, FigmaSize.Hug));
+            content.Add(new FigmaText(default, "It will be in the next update.", 20, Primary){}.Size(FigmaSize.Hug, FigmaSize.Hug));
+
             
         }
 
