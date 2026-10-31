@@ -141,8 +141,34 @@ namespace DPSMeter.Windows.DPSMeterWindow
             return mainBody;
         }
 
+        // Totals shown in the main body: the selected skill's own numbers, or the whole fight when none is selected.
+        private readonly struct Stats
+        {
+            public readonly double Total, Highest, Dps, PeakDps;
+            public readonly int Hits, Crits;
+
+            public Stats(double total, double highest, double dps, double peakDps, int hits, int crits)
+            {
+                Total = total; Highest = highest; Dps = dps; PeakDps = peakDps; Hits = hits; Crits = crits;
+            }
+        }
+
+        private static Stats CurrentStats()
+        {
+            if (SelectedSkillKey == string.Empty)
+                return new Stats(Tracker.Total, Tracker.Highest, Tracker.Dps, Tracker.PeakDps, Tracker.Hits, Tracker.Crits);
+
+            // the selected skill may not have dealt damage in the current fight
+            if (!Tracker.Skills.TryGetValue(SelectedSkillKey, out var e))
+                return default;
+
+            double dps = Tracker.Start < 0f ? 0 : e.Total / Math.Max(Tracker.Elapsed, 1f);
+            return new Stats(e.Total, e.Max, dps, e.PeakDps, e.Hits, e.Crits);
+        }
+
         private FigmaFrame MainBodyLeft()
         {
+            var stats = CurrentStats();
             var mainBodyLeft = new FigmaFrame(default)
             {
                 Layout = FigmaLayout.Vertical,
@@ -181,14 +207,14 @@ namespace DPSMeter.Windows.DPSMeterWindow
             }.Size(FigmaSize.Fill, FigmaSize.Hug));
 
             // Primary readout DPS text
-            var primaryReadoutText = primaryReadoutTextFrame.Add(new FigmaText(default, Helpers.Fmt(Tracker.Dps), Helpers.HeaderStyle(TextAnchor.UpperLeft, Primary, 50))
+            var primaryReadoutText = primaryReadoutTextFrame.Add(new FigmaText(default, Helpers.Fmt(stats.Dps), Helpers.HeaderStyle(TextAnchor.UpperLeft, Primary, 50))
             {
                 Font = BundledFont.Medium,
                 Bounds = new Rect(0f, 0f, 158f, 65f),
             }.Size(FigmaSize.Hug, FigmaSize.Hug));
 
             // peak DPS text
-            var PeakText = primaryReadout.Add(new FigmaText(default, $"Peak: {Gui.Colored(Helpers.Fmt(Tracker.PeakDps), Primary)}", Helpers.HeaderStyle(TextAnchor.UpperCenter, Text, 20, FontStyle.Normal)) { RichText = true, Font = BundledFont.Medium }.Size(FigmaSize.Fill, FigmaSize.Hug));
+            var PeakText = primaryReadout.Add(new FigmaText(default, $"Peak: {Gui.Colored(Helpers.Fmt(stats.PeakDps), Primary)}", Helpers.HeaderStyle(TextAnchor.UpperCenter, Text, 20, FontStyle.Normal)) { RichText = true, Font = BundledFont.Medium }.Size(FigmaSize.Fill, FigmaSize.Hug));
 
             if (Minimal)
             {
@@ -223,6 +249,7 @@ namespace DPSMeter.Windows.DPSMeterWindow
         private FigmaFrame MainBodyRight()
         {
             // Right side of the main body frame
+            var stats = CurrentStats();
             var mainBodyRight = new FigmaFrame(default)
             {
                 Layout = FigmaLayout.Vertical,
@@ -238,11 +265,11 @@ namespace DPSMeter.Windows.DPSMeterWindow
             // Info dictionary for the right side of the main body
             Dictionary<string, string> infoDict = new()
                 {
-                    { "Total", Helpers.Fmt(Tracker.Total)},
-                    { "Highest hit", Helpers.Fmt(Tracker.Highest)},
-                    { "Avg hit", Helpers.Fmt(Tracker.Total / Math.Max(1, Tracker.Hits)) },
-                    { "Hits", $"{Tracker.Hits} | {Tracker.Hits / Math.Max(1, Tracker.Elapsed):0.0}/s" },
-                    { "Crit rate", $"{(float)Tracker.Crits / Math.Max(1, Tracker.Hits) * 100:0.#}%" }
+                    { "Total", Helpers.Fmt(stats.Total)},
+                    { "Highest hit", Helpers.Fmt(stats.Highest)},
+                    { "Avg hit", Helpers.Fmt(stats.Total / Math.Max(1, stats.Hits)) },
+                    { "Hits", $"{stats.Hits} | {stats.Hits / Math.Max(1, Tracker.Elapsed):0.0}/s" },
+                    { "Crit rate", $"{(float)stats.Crits / Math.Max(1, stats.Hits) * 100:0.#}%" }
                 };
 
             // Iterate through the info dictionary and create UI elements for each key-value pair

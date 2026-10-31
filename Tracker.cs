@@ -14,6 +14,7 @@ namespace DPSMeter
             public int Hits;
             public int Crits;
             public double Max;
+            public double PeakDps;
             public Sprite Icon; // null when the source has no icon
             public readonly double[] ByType = new double[TypeCount];
         }
@@ -132,6 +133,7 @@ namespace DPSMeter
             e.Hits++;
             e.Crits += d.TotalCrits;
             if (value > e.Max) e.Max = value;
+            if (Elapsed >= PeakMinSeconds) e.PeakDps = Math.Max(e.PeakDps, e.Total / Math.Max(Elapsed, 1f));
             if (d.IsDamageOverTime) DotTotal += value;
 
             var split = new double[TypeCount];
